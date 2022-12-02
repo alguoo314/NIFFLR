@@ -1,4 +1,3 @@
-
 from collections import defaultdict
 import argparse
 import sys
@@ -8,7 +7,7 @@ import numpy as np
 def main():
     sys.setrecursionlimit(2500)
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i","--inp",default='output.txt',help="Path to the file after majority voting and sorting")
+    parser.add_argument("-i","--inp",default='majority_voted.fa',help="Path to the file after majority voting and sorting")
     parser.add_argument("-o","--outp",default='best_paths.txt',help="Path to the output file")
     args = parser.parse_args()
     inputfile = open(args.inp,'r')
@@ -28,14 +27,14 @@ def main():
         if l[0]=='>':
             if exons != []:
                 #if only one exon
-                if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (exons[0][4] >=  exons[-1][4]) or exons[0][5] >=  exons[-1][5] or exons[1][4] < 0:
-                    exons.sort(key = lambda x: (int(x[5])-int(x[4])),reverse=True)
-                    #just output the longest mapping
+                if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (exons[0][4] >=  exons[-1][4]) or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0:
+                    exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
+                    #just output the longest mapping with min overhang penalty as possible
                     with open(outp,'a') as of:
                         score_recorder.append(0)
                         exons[0][1]=exons[0][1].split("_rePlicate")[0]
                         of.write(read_name+'\t'+str(0)+'\n')
-                        of.write(' '.join(map(str,exons[0]))+'\n')
+                        of.write(' '.join(map(str,exons[0][:-1]))+'\n')
                         #of.write('The total distance = 0\n')
                         
                         
@@ -60,18 +59,20 @@ def main():
                 same_exons_record[exon_info[1]]=[exon_name]
             start = int(exon_info[4])
             end = int(exon_info[5])
-            exons.append([exon_info[0],exon_name,exon_info[2],exon_info[3],start,end,exon_info[6]])
+            overhang = int(exon_info[2])-start-1+end-int(exon_info[3])
+            overhangs_penalty = max(0,(overhang-2)*0.1)
+            exons.append([exon_info[0],exon_name,exon_info[2],exon_info[3],start,end,exon_info[6],overhangs_penalty])
             exon_index_record[exon_name] = exon_info
-
+            
      #final
-    if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or exons[0][4] >=  exons[-1][4] or exons[0][5] >=  exons[-1][5] or  exons[1][4] < 0:
-        exons.sort(key = lambda x: (int(x[5])-int(x[4])),reverse=True)
-        #just output the longest mapping
+    if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or exons[0][4] >=  exons[-1][4] or exons[0][5] >=  exons[-1][5] or  exons[-1][4] < 0:
+        exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
+        #just output the longest mapping with min overhang penalty as possible
         with open(outp,'a') as of:
             score_recorder.append(0)
             exons[0][1]=exons[0][1].split("_rePlicate")[0]
             of.write(read_name+'\t'+str(0)+'\n')
-            of.write(' '.join(map(str,exons[0]))+'\n')
+            of.write(' '.join(map(str,exons[0][:-1]))+'\n')
             #of.write('The total distance = 0\n')             
     else:        
         construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder)
@@ -84,9 +85,13 @@ def main():
 
 def extract_w(lst):
     return [item[2] for item in lst]
-           
+ 
+
+          
 def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder):
     exon_names_list = [x[1] for x in exons]
+    overhang_penalties = [x[-1] for x in exons]
+    overhang_pen_dict = dict(map(lambda i,j : (i,j) , exon_names_list,overhang_penalties))
     g = Graph(exon_names_list)
     edges_candidates = []
     unconnected_nodes = set()
@@ -99,20 +104,17 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             node_2_info = exons[j]
             node_2_name =  node_2_info[1]
             diff = node_2_info[4]-node_1_info[5]
-            if diff > 0: #nonneg weight (gap or overlap)
-                length = abs(diff-1)
+            #nonneg weight (gap or overlap)
+            if diff > 0: 
+                length = abs(diff)-1
             else:
-                length = abs(diff+1)
+                length = abs(diff)+1
             edges_candidates.append([node_1_name, node_2_name, length])
-        
-    
-    
 
-    
     weights = extract_w(edges_candidates)
     thres = (np.min(weights)+10)*2
     for e in edges_candidates:
-        g.addEdge(e[0], e[1], e[2]) #still add the edge even if the penalty is above the threshold. Prevent segmentation in the middle
+        g.addEdge(e[0], e[1], e[2]) #still add the edge even if the gap/overlap is above the threshold. Prevent segmentation in the middle
         if e[2]<=thres:
             unconnected_nodes.discard(e[0])
             unconnected_nodes.discard(e[1])
@@ -159,22 +161,23 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
         for node1 in origin_candidate_nodes:
             for node2 in destination_candidate_nodes:
                 if node1 != node2:
-                    dist, path = g.shortestPath(node1,node2)
+                    dist, overhang_penalized_dist,path = g.shortestPath(node1,node2,overhang_pen_dict)
                     if dist != None:
-                        possible_paths.append([dist, path])
-        possible_paths.sort(key = lambda x: int(x[0]))
+                        possible_paths.append([dist, overhang_penalized_dist, path])
+
+        possible_paths.sort(key = lambda x: int(x[1]))
         best = possible_paths[0]
         best_dist = best[0]
-        best_path = best[1]
+        best_path = best[2]
         with open(outp,'a') as of:
             if best_path[0].split("_rePlicate")[0] ==  best_path[-1].split("_rePlicate")[0]:
                 score = 0
                 score_recorder.append(score)
                 of.write(read_name+'\t'+str(0)+'\n')
-                exons.sort(key = lambda x: (int(x[5])-int(x[4])),reverse=True)
+                exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
                 of.write(' '.join(map(str,exons[0]))+'\n')
             else:
-                score = round(best_dist/len(best_path),3)
+                score = round(best_dist/(len(best_path)-1),3)
                 score_recorder.append(score)
                 of.write(read_name+'\t'+str(score)+'\n')
                 for node in best_path:
@@ -234,7 +237,7 @@ class Graph:
     ''' The function to find shortest paths from given vertex.
         It uses recursive topologicalSortUtil() to get topological
         sorting of given graph.'''
-    def shortestPath(self,s,s2):
+    def shortestPath(self,s,s2,overhang_pen_dict):
         visited = {}
         # Mark all the vertices as not visited
         for v in self.verts:
@@ -250,9 +253,12 @@ class Graph:
         # Initialize distances to all vertices as infinite and
         # distance to source as 0
         dist ={}
+        dist_overhang_penalized = {}
         for v in self.verts:
             dist[v] = float("Inf")
+            dist_overhang_penalized[v] = float("Inf")
         dist[s] = 0
+        dist_overhang_penalized[s] = overhang_pen_dict[s]
         prevs = {}
         prevs[s] = None
         
@@ -265,12 +271,14 @@ class Graph:
  
             # Update distances of all adjacent vertices
             for node,weight in self.graph[i]:
-                if dist[node] > dist[i] + weight:
+                if dist_overhang_penalized[node] > dist_overhang_penalized[i] + weight + overhang_pen_dict[node]:
                     dist[node] = dist[i] + weight
+                    dist_overhang_penalized[node] = dist_overhang_penalized[i] + weight + overhang_pen_dict[node]
                     prevs[node]=i
  
         # Print the calculated shortest distances
         final_dist = dist[s2]
+        final_dist_overhang_penalized = dist_overhang_penalized[s2]
         path = []
         temp= s2
         path.append(temp)
@@ -285,7 +293,7 @@ class Graph:
                 return None,None
             
         path.reverse()
-        return final_dist, path
+        return final_dist,final_dist_overhang_penalized, path
     
     
     

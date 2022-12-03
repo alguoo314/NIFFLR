@@ -284,16 +284,16 @@ class Graph:
         path.append(temp)
         
         if temp not in prevs.keys():
-            return None,None
+            return None,None,None
         while prevs[temp] != None:
             prev=prevs[temp]
             path.append(prev)
             temp=prev
             if temp not in prevs.keys():
-                return None,None
+                return None,None,None
             
         path.reverse()
-        return final_dist,final_dist_overhang_penalized, path
+        return final_dist,final_dist_overhang_penalized,path
     
     
     

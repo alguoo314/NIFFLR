@@ -142,7 +142,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             break #start should monotonically increase
     
     for ex2 in reversed(range(len(exons)-1)):
-        if exons[ex2][5] >= exons[-1][5]:
+        if exons[ex2][5] >= exons[-1][5] or exons[ex2][4]== exons[-1][4]:
             name = exons[ex2][1]
             if name not in unconnected_nodes:
                 destination_candidate_nodes.add(name)

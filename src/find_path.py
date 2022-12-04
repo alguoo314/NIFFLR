@@ -133,13 +133,11 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
     destination_candidate_nodes.add(destination[1])
     
     for ex in range(1,len(exons)):
-        if exons[ex][4] <= 0:
+        if exons[ex][4] <= 0 or (exons[ex][5] <= exons[0][5] and exons[ex][4] < exons[ex-1][5]): #the right part to the "and" is to prevent starting in the middle of an exon chain
             name = exons[ex][1]
             if name not in unconnected_nodes:
                 origin_candidate_nodes.add(exons[ex][1])
             #add all exons that start with the very beginning of the read
-        else:
-            break #start should monotonically increase
     
     for ex2 in reversed(range(len(exons)-1)):
         if exons[ex2][5] >= exons[-1][5] or exons[ex2][4]== exons[-1][4]:

@@ -62,7 +62,7 @@ def main():
             if start > 0:
                 overhang = int(exon_info[2])-start+end-int(exon_info[3])
             else: # do not penalize the overhang that goes before the start of the read
-                overhang =  end-int(exon_info[3])
+                overhang = int(exon_info[2])-1+end-int(exon_info[3])
             overhangs_penalty = max(0,(overhang-2)*0.1)
             exons.append([exon_info[0],exon_name,exon_info[2],exon_info[3],start,end,exon_info[6],overhangs_penalty])
             exon_index_record[exon_name] = exon_info
@@ -168,7 +168,8 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
                     if dist != None:
                         possible_paths.append([dist, overhang_penalized_dist, path])
 
-        possible_paths.sort(key = lambda x: int(x[1]))
+        possible_paths.sort(key = lambda x: (int(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
+        # if there is a tie of score between two paths, choose the path that spans the most of the reads (actual match, not overhangs)
         best = possible_paths[0]
         best_dist = best[0]
         best_path = best[2]

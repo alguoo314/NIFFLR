@@ -59,7 +59,10 @@ def main():
                 same_exons_record[exon_info[1]]=[exon_name]
             start = int(exon_info[4])
             end = int(exon_info[5])
-            overhang = int(exon_info[2])-start-1+end-int(exon_info[3])
+            if start > 0:
+                overhang = int(exon_info[2])-start+end-int(exon_info[3])
+            else: # do not penalize the overhang that goes before the start of the read
+                overhang =  end-int(exon_info[3])
             overhangs_penalty = max(0,(overhang-2)*0.1)
             exons.append([exon_info[0],exon_name,exon_info[2],exon_info[3],start,end,exon_info[6],overhangs_penalty])
             exon_index_record[exon_name] = exon_info

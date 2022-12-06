@@ -1,1 +1,2 @@
-# IsoLoRe: software for finding novel isoforms from long transcriptome reads
+# Niffler: Novel IsoForm Finder using Long Transcriptomic Reads
+

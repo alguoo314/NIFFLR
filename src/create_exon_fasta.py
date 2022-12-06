@@ -1,5 +1,4 @@
 import csv
-#import pickle #Is it needed to save the dictionary
 import math
 from os.path import exists
 import random

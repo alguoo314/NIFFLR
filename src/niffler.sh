@@ -169,9 +169,8 @@ rm -f niffler.find_path.success && \
 touch niffler.voting.success || error_exit "Filtering by majority voting failed"    
 if [ "$DISCARD_INTERM" = true ] ; then
     log "Removing intermediate files one_line_per_match.txt, $OUTPUT_PREFIX.sorted_one_line_per_match.txt, and first_two_lines_only.delta" &&\
-    rm toolname.find_path.success  && \
     rm one_line_per_match.txt && \
-    rm first_two_lines_only.delta && \
+    rm first_two_lines_only.delta
 fi
 fi
 

@@ -162,7 +162,8 @@ fi
 if [ ! -e niffler.voting.success ];then
 log "Perform majority voting such that for each read, only exons of the most-mapped gene to each read is kept under the read" && \
 grep ">" -A 1 $OUTPUT_PREFIX.delta  > first_two_lines_only.delta && \
-sed 'N;N;s/\n/ /g' first_two_lines_only.delta > one_line_per_match.txt && \
+sed '3~3d' first_two_lines_only.delta > modified.first_two_lines_only.delta
+sed 'N;s/\n/ /g' modified.first_two_lines_only.delta > one_line_per_match.txt && \
 sort -k2,2 --parallel=32 --buffer-size=80% one_line_per_match.txt > $OUTPUT_PREFIX.sorted_one_line_per_match.txt
 python majority_vote.py -i $OUTPUT_PREFIX.sorted_one_line_per_match.txt -o $OUTPUT_PREFIX.majority_voted.fasta -n $OUTPUT_PREFIX.negative_direction_exons.csv &&\
 rm -f niffler.find_path.success && \    
@@ -170,6 +171,7 @@ touch niffler.voting.success || error_exit "Filtering by majority voting failed"
 if [ "$DISCARD_INTERM" = true ] ; then
     log "Removing intermediate files one_line_per_match.txt, $OUTPUT_PREFIX.sorted_one_line_per_match.txt, and first_two_lines_only.delta" &&\
     rm one_line_per_match.txt && \
+    rm modified.first_two_lines_only.delta && \
     rm first_two_lines_only.delta
 fi
 fi

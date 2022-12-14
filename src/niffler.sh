@@ -10,6 +10,7 @@ DISCARD_INTERM=false
 MIN_MATCH=15
 MIN_CLUSTER=31
 DELTA=false
+NUCMER_THREADS=32
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -46,6 +47,7 @@ function usage {
     echo "-l,--minmatch=uint32    Set the minimum length of a single exact match in nucmer (15)"
     echo "-n, --nucmer_delta      User provided nucmer file. If provided, the program will skip the nucmer process"
     echo "-p, --prefix            The prefix of the output gtf files (output)"
+    echo "-t --threads            The number threads used for nucmer (32)"
     echo "-h, --help              This message"
     echo "-v, --verbose           Output information (False)"
 }
@@ -86,6 +88,10 @@ do
         -d|--discard)
 	    export DISCARD_INTERM=true;
 	    shift
+            ;;
+	-t|--threads)
+            export NUCMER_THREADS="$2"
+            shift
             ;;
         -v|--verbose)
             set -x
@@ -149,7 +155,7 @@ if [ ! -e niffler.nucmer.success ];then
     if [[ "$DELTA" = false || ! -s $DELTA ]] ; then
 	log "Nucmer delta file not provided or the path is invalid" && \
 	log "Running nucmer to align between the exons and the reads" && \
-	nucmer --batch 100000 -l $MIN_MATCH -c $MIN_CLUSTER -p $OUTPUT_PREFIX -t 32 $OUTPUT_PREFIX.exons.fna $INPUT_READS
+	nucmer --batch 100000 -l $MIN_MATCH -c $MIN_CLUSTER -p $OUTPUT_PREFIX -t $NUCMER_THREADS $OUTPUT_PREFIX.exons.fna $INPUT_READS
     else
 	log "Using existing nucmer file" && \
 	cp $DELTA $OUTPUT_PREFIX.delta

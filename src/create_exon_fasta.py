@@ -31,8 +31,10 @@ def chr_conversion(nc_name):
         return "chr"+str(num)
     elif int(num)==23:
         return "chrX"
-    else:
+    elif int(num)==24:
         return "chrY"
+    else:
+        return "UnknownChr"
 
 def extract_exon_seq(seq_dict,gff_file,output_file,neg_file):
     exon_seq_list=[]

@@ -17,6 +17,8 @@ def main():
     prev_read = "NaN"
     weight_dict={}
     exon_dict = {}
+    lines_to_be_written=""
+    read_counter = 0
     with open(args.inp,'r') as f:
         for line in f:
             if line[0] != '>':
@@ -24,7 +26,7 @@ def main():
             info = line.split()
             read_name = info[1]
             if read_name != prev_read and prev_read != "NaN":
-                write_exons(weight_dict,args.out,neg_exons_list,exon_dict,prev_read)
+                lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,args.out,neg_exons_list,exon_dict,prev_read)
                 weight_dict={}
                 exon_dict = {}
             prev_read = read_name
@@ -58,11 +60,11 @@ def main():
             matched_len_minus_errors = matched_len-int(info[8])
             weight_dict[exon_name]+= matched_len_minus_errors
           
-       
-    write_exons(weight_dict,args.out,neg_exons_list,exon_dict,prev_read)         
+    read_counter = 999  #write everything in the exon dict to file
+    lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,args.out,neg_exons_list,exon_dict,prev_read)         
     return
 
-def write_exons(weight_dict,out,neg_exons_list,exon_dict,read):
+def write_exons(lines_to_be_written,read_counter,weight_dict,out,neg_exons_list,exon_dict,read):
     if bool(weight_dict):
         best_exon=max(weight_dict, key=weight_dict.get)
         exon_data=exon_dict[best_exon]
@@ -71,14 +73,21 @@ def write_exons(weight_dict,out,neg_exons_list,exon_dict,read):
               exon_data.sort(key = lambda x: int(x[1]))
            else:
               exon_data.sort(key = lambda x: int(x[1]),reverse=True)
-           with open(out, 'a') as of:    
-               of.writelines(">"+read+'\n')
-               n=0
-               for line in exon_data:
-                  n+=1
-                  of.writelines('exon'+str(n)+' '+' '.join(str(item) for item in line[2:])+'\n')
-            
-    return
+
+           lines_to_be_written += str('>'+read+'\n')
+           n=0
+           read_counter +=1
+           for line in exon_data:
+               n+=1
+               lines_to_be_written += str('exon'+str(n)+' '+' '.join(str(item) for item in line[2:])+'\n')
+
+    if read_counter == 1000:
+        read_counter = 0
+        with open(out, 'a') as of:
+            of.write(lines_to_be_written)
+            lines_to_be_written = ""
+        
+    return lines_to_be_written,read_counter
 
          
    

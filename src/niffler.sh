@@ -146,14 +146,15 @@ fi
 if [ ! -e niffler.exons_extraction.success ];then
 log "Extracting exons from the GFF file and putting them into a fasta file" && \
 log "All exons are listed as in the positive strand" && \
-python create_exon_fasta.py -r $REF -g $INPUT_GFF -o $OUTPUT_PREFIX.exons.fna -n $OUTPUT_PREFIX.negative_direction_exons.csv  && \
+python $MYPATH/create_exon_fasta.py -r $REF -g $INPUT_GFF -o $OUTPUT_PREFIX.exons.fna -n $OUTPUT_PREFIX.negative_direction_exons.csv  && \
 rm -f niffler.nucmer.success && \
 touch niffler.exons_extraction.success || error_exit "exon extraction failed"
 fi
 
 if [ ! -e niffler.nucmer.success ];then
     if [[ "$DELTA" = false || ! -s $DELTA ]] ; then
-	log "Nucmer delta file not provided or the path is invalid. Running nucmer to align between the exons and the reads" && \
+	log "Nucmer delta file not provided or the path is invalid" && \
+	log "Running nucmer to align between the exons and the reads" && \
 	nucmer --batch 100000 -l $MIN_MATCH -c $MIN_CLUSTER -p $OUTPUT_PREFIX -t $NUCMER_THREADS $OUTPUT_PREFIX.exons.fna $INPUT_READS
     else
 	log "Using existing nucmer file" && \
@@ -169,9 +170,9 @@ log "Perform majority voting such that for each read, only exons of the most-map
 grep ">" -A 1 --no-group-separator $OUTPUT_PREFIX.delta > $OUTPUT_PREFIX.first_two_lines_only.delta && \
 sed 'N;s/\n/ /g' $OUTPUT_PREFIX.first_two_lines_only.delta > $OUTPUT_PREFIX.one_line_per_match.txt && \
 sort -k2,2 --parallel=32 --buffer-size=80% $OUTPUT_PREFIX.one_line_per_match.txt > $OUTPUT_PREFIX.sorted_one_line_per_match.txt && \
-python majority_vote.py -i $OUTPUT_PREFIX.sorted_one_line_per_match.txt -o $OUTPUT_PREFIX.majority_voted.fasta -n $OUTPUT_PREFIX.negative_direction_exons.csv && \
+python $MYPATH/majority_vote.py -i $OUTPUT_PREFIX.sorted_one_line_per_match.txt -o $OUTPUT_PREFIX.majority_voted.fasta -n $OUTPUT_PREFIX.negative_direction_exons.csv && \
 rm -f niffler.find_path.success && \    
-touch niffler.voting.success || error_exit "Filtering by majority voting failed" && \ 
+touch niffler.voting.success || error_exit "Filtering by majority voting failed"
 if [ "$DISCARD_INTERM" = true ]; then
     log "Removing intermediate files $OUTPUT_PREFIX.one_line_per_match.txt, $OUTPUT_PREFIX.sorted_one_line_per_match.txt, and $OUTPUT_PREFIX.first_two_lines_only.delta" && \
     rm $OUTPUT_PREFIX.one_line_per_match.txt && \
@@ -182,14 +183,14 @@ fi
 
 if [ ! -e niffler.find_path.success ];then
 log "Finding best path through the exons in each read" && \
-python find_path.py -i $OUTPUT_PREFIX.majority_voted.fasta -o $OUTPUT_PREFIX.best_paths.fasta  && \
+python $MYPATH/find_path.py -i $OUTPUT_PREFIX.majority_voted.fasta -o $OUTPUT_PREFIX.best_paths.fasta  && \
 rm -f niffler.gtf_generation.success  && \    
 touch niffler.find_path.success || error_exit "Finding the best path failed"
 fi
 
 if [ ! -e niffler.gtf_generation.success ];then
 log "Generating the gtf file which converts the pathes of exons as transcripts" && \
-python generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf -n $OUTPUT_PREFIX.negative_direction_exons.csv  && \
+python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf -n $OUTPUT_PREFIX.negative_direction_exons.csv  && \
 rm -f niffler.gfftools.success  && \ 
 touch niffler.gtf_generation.success || error_exit "GTF generation failed"
 fi
@@ -206,7 +207,7 @@ fi
 
 if [ ! -e niffler.count.success ];then
 log "Adding the number of reads corresponded to each transcript onto the gtf anno file produced in the above step" && \
-python add_read_counts.py -a $OUTPUT_PREFIX.annotated.gtf -u $OUTPUT_PREFIX.good_output.gtf -o $OUTPUT_PREFIX.reads_num_added_annotated.gtf && \
+python $MYPATH/add_read_counts.py -a $OUTPUT_PREFIX.annotated.gtf -u $OUTPUT_PREFIX.good_output.gtf -o $OUTPUT_PREFIX.reads_num_added_annotated.gtf && \
 touch niffler.gfftools.success || error_exit "Adding read counts to gtf anno files failed"
 fi
 

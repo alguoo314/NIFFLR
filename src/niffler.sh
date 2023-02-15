@@ -153,8 +153,7 @@ fi
 
 if [ ! -e niffler.nucmer.success ];then
     if [[ "$DELTA" = false || ! -s $DELTA ]] ; then
-	log "Nucmer delta file not provided or the path is invalid" && \
-	log "Running nucmer to align between the exons and the reads" && \
+	log "Nucmer delta file not provided or the path is invalid. Running nucmer to align between the exons and the reads" && \
 	nucmer --batch 100000 -l $MIN_MATCH -c $MIN_CLUSTER -p $OUTPUT_PREFIX -t $NUCMER_THREADS $OUTPUT_PREFIX.exons.fna $INPUT_READS
     else
 	log "Using existing nucmer file" && \

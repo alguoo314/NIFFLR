@@ -46,17 +46,21 @@ def extract_exon_seq(seq_dict,gff_file,output_file,neg_file):
     with open(gff_file,'r') as csvfile:
         reader = csv.reader(csvfile, delimiter='\t')
         for row in reader:
-            #if row[1] != "BestRefSeq":
-                #continue
-            if ("Parent" not in row[8]) and ("gene=" in row[8] or "gene_name=" in row[8]) and (row[2] in "transcript mRNA gene"):
+            if len(row) != 9:
+                continue
+            if ("Parent" not in row[8]) and ("gene" in row[8]) and (row[2] in "transcript mRNA gene"):
                 first_gene_or_transcript = True
                 direction = row[6]
                 seq_name =  chr_conversion(row[0])
                 if "gene=" in row[8]:
                     gene_name = row[8].split(sep="gene=")[1].split(sep=";")[0]
-                else:
+                elif "gene_name" in row[8]:
                     gene_name = row[8].split(sep="gene_name=")[1].split(sep=";")[0]
-                
+                elif "geneID" in row[8]: #The stringtie assembly uses geneID instead of gene_name, but in hg38c_protein_and_lncRNA.gff geneID is meaningless
+                    gene_name = row[8].split(sep="geneID=")[1].split(sep=";")[0]
+                else:
+                    print("INVALID GFF FORMAT?")
+                    return
             else:
                 #exon rows
                 if first_gene_or_transcript == False or seq_name not in seq_dict.keys(): #eg. chromosome M

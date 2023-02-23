@@ -10,6 +10,7 @@ DISCARD_INTERM=false
 MIN_MATCH=15
 MIN_CLUSTER=31
 DELTA=false
+QUANT=false
 NUCMER_THREADS=32
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
@@ -47,6 +48,7 @@ function usage {
     echo "-l,--minmatch=uint32    Set the minimum length of a single exact match in nucmer (15)"
     echo "-n, --nucmer_delta      User provided nucmer file. If provided, the program will skip the nucmer process"
     echo "-p, --prefix            The prefix of the output gtf files (output)"
+    echo "-q, --quantification    If supplied, niffler will assign the reads back to the reference transcripts based on coverages (False)"
     echo "-t --threads            The number threads used for nucmer (32)"
     echo "-h, --help              This message"
     echo "-v, --verbose           Output information (False)"
@@ -89,6 +91,10 @@ do
 	    export DISCARD_INTERM=true;
 	    shift
             ;;
+	-q|--quantification)
+            export QUANT=true;
+            shift
+            ;;
 	-t|--threads)
             export NUCMER_THREADS="$2"
             shift
@@ -129,7 +135,8 @@ if [ ! -s $MYPATH/generate_gtf.py ];then
 error_exit "generate_gtf.py not found in $MYPATH. It must be in the directory as this script"
 fi
 
-
+if [ "$QUANT" == true && ! -s $MYPATH/quantification.py ]; then
+error_exit "quantification.py not found in $MYPATH but the --quantification switch is provided by the user"
 
 if [ ! -s $INPUT_GFF ];then
 error_exit "The input gff file does not exist. Please supply a valid gff file."
@@ -153,8 +160,7 @@ fi
 
 if [ ! -e niffler.nucmer.success ];then
     if [[ "$DELTA" = false || ! -s $DELTA ]] ; then
-	log "Nucmer delta file not provided or the path is invalid" && \
-	log "Running nucmer to align between the exons and the reads" && \
+	log "Nucmer delta file not provided or the path is invalid. Running nucmer to align between the exons and the reads" && \
 	nucmer --batch 100000 -l $MIN_MATCH -c $MIN_CLUSTER -p $OUTPUT_PREFIX -t $NUCMER_THREADS $OUTPUT_PREFIX.exons.fna $INPUT_READS
     else
 	log "Using existing nucmer file" && \
@@ -193,6 +199,13 @@ log "Generating the gtf file which converts the pathes of exons as transcripts" 
 python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf -n $OUTPUT_PREFIX.negative_direction_exons.csv  && \
 rm -f niffler.gfftools.success  && \ 
 touch niffler.gtf_generation.success || error_exit "GTF generation failed"
+fi
+
+if [ "$QUANT" == true && ! -e niffler.quantification.success ];then
+log "Performing reference transcripts quantification"
+sort -k1,1 -V -s $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
+python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $INPUT_GFF -o $OUTPUT_PREFIX.reads.assigned.gff && \
+touch niffler.quantification.success || error_exit "Reference transcripts quantification failed"    
 fi
 
 if [ ! -e niffler.gfftools.success ];then

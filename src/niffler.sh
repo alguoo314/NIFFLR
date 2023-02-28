@@ -190,14 +190,14 @@ fi
 if [ ! -e niffler.find_path.success ];then
 log "Finding best path through the exons in each read" && \
 python $MYPATH/find_path.py -i $OUTPUT_PREFIX.majority_voted.fasta -o $OUTPUT_PREFIX.best_paths.fasta  && \
-rm -f niffler.gtf_generation.success  && \    
+rm -f niffler.gtf_generation.success  && \
 touch niffler.find_path.success || error_exit "Finding the best path failed"
 fi
 
 if [ ! -e niffler.gtf_generation.success ];then
 log "Generating the gtf file which converts the pathes of exons as transcripts" && \
 python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf -n $OUTPUT_PREFIX.negative_direction_exons.csv  && \
-rm -f niffler.gfftools.success  && \ 
+rm -f niffler.gfftools.success  && \
 touch niffler.gtf_generation.success || error_exit "GTF generation failed"
 fi
 
@@ -213,7 +213,7 @@ log "Running gffread -T --cluster-only and gffcompare -r  to group transcripts i
 gffread -T --cluster-only $OUTPUT_PREFIX.good_output.gtf &> $OUTPUT_PREFIX.after_gffread.gtf && \
 gffcompare -r $INPUT_GFF $OUTPUT_PREFIX.after_gffread.gtf -o $OUTPUT_PREFIX && \
 mv $OUTPUT_PREFIX.$OUTPUT_PREFIX.after_gffread.gtf.refmap $OUTPUT_PREFIX.after_gffread.gtf.refmap && \
-mv $OUTPUT_PREFIX.$OUTPUT_PREFIX.after_gffread.gtf.tmap $OUTPUT_PREFIX.after_gffread.gtf.tmap &&\    
+mv $OUTPUT_PREFIX.$OUTPUT_PREFIX.after_gffread.gtf.tmap $OUTPUT_PREFIX.after_gffread.gtf.tmap && \
 rm -f niffler.count.success  && \
 touch niffler.gfftools.success || error_exit "gffread or gffcompare failed, please check the error messages for details"
 fi

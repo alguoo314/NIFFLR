@@ -40,8 +40,8 @@ function usage {
     echo "Usage: wrapper_script.sh [options]"
     echo "Options:"
     echo "Options (default value in (), *required):"
-    echo "-c,--mincluster=uint32  Sets the minimum length of a cluster of matches (31)"
-    echo "-d. --discard           If supplied, all the intermediate files will be removed (False)"
+    echo "-c, --mincluster=uint32  Sets the minimum length of a cluster of matches (31)"
+    echo "-d, --discard           If supplied, all the intermediate files will be removed (False)"
     echo "-f, --fasta             *Path to the fasta file containing the reads"
     echo "-r, --ref               *Path to the fasta file containing the reference (often refseq)"
     echo "-g, --gff               *Path to the reference GFF file"
@@ -49,7 +49,7 @@ function usage {
     echo "-n, --nucmer_delta      User provided nucmer file. If provided, the program will skip the nucmer process"
     echo "-p, --prefix            The prefix of the output gtf files (output)"
     echo "-q, --quantification    If supplied, niffler will assign the reads back to the reference transcripts based on coverages (False)"
-    echo "-t --threads            The number threads used for nucmer (32)"
+    echo "-t, --threads            The number threads used for nucmer (32)"
     echo "-h, --help              This message"
     echo "-v, --verbose           Output information (False)"
 }
@@ -177,7 +177,7 @@ grep ">" -A 1 --no-group-separator $OUTPUT_PREFIX.delta > $OUTPUT_PREFIX.first_t
 sed 'N;s/\n/ /g' $OUTPUT_PREFIX.first_two_lines_only.delta > $OUTPUT_PREFIX.one_line_per_match.txt && \
 sort -k2,2 --parallel=32 --buffer-size=80% $OUTPUT_PREFIX.one_line_per_match.txt > $OUTPUT_PREFIX.sorted_one_line_per_match.txt && \
 python $MYPATH/majority_vote.py -i $OUTPUT_PREFIX.sorted_one_line_per_match.txt -o $OUTPUT_PREFIX.majority_voted.fasta -n $OUTPUT_PREFIX.negative_direction_exons.csv && \
-rm -f niffler.find_path.success && \    
+rm -f niffler.find_path.success && \
 touch niffler.voting.success || error_exit "Filtering by majority voting failed"
 if [ "$DISCARD_INTERM" = true ]; then
     log "Removing intermediate files $OUTPUT_PREFIX.one_line_per_match.txt, $OUTPUT_PREFIX.sorted_one_line_per_match.txt, and $OUTPUT_PREFIX.first_two_lines_only.delta" && \

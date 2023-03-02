@@ -38,7 +38,7 @@ def main():
     for l in Lines:
         if l[0]=='>':
             first_line = True   
-            if num_lines > 1:
+            if num_lines > 0:
                 #process the last read
                 if bad_entries:
                     transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad)
@@ -48,6 +48,7 @@ def main():
             read_info = l.strip().split('\t')
             read_name = read_info[0][1:]
             score = float(read_info[1])
+            
             if score > 5:
                 bad_entries = True
                 list_of_bad_entries = [read_name,score]
@@ -78,9 +79,9 @@ def main():
                    list_of_good_entries.append(gene_seg)
                
     #finally
-    if bad_entries == False and num_lines>1:
+    if bad_entries == False:
         transcript_entries_count_dict_good,big_dictionary_good=add_gtf_lines(list_of_good_entries,transcript_entries_count_dict_good,big_dictionary_good)
-    elif bad_entries == True and num_lines>1:
+    elif bad_entries == True:
          transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad)
     big_dictionary_good = collections.OrderedDict(sorted(big_dictionary_good.items()))
     big_dictionary_bad = collections.OrderedDict(sorted(big_dictionary_bad.items()))

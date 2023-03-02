@@ -42,10 +42,10 @@ e transcripts")
     output_file.write(output_text)
     while ref_line and assembled_line:
         if assembled_line_fields[2] == "transcript":
-            chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line = process_assembled_transcript(assembled_line_fields)
+            chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line,single_exon = process_assembled_transcript(assembled_line_fields)
             #now the pointer is at the next transcript of the assembled gtf file
             if first_transcript == False:
-                calc_read_proportions(assembled_exon_chain,num_reads)
+                calc_read_proportions(assembled_exon_chain,num_reads,single_exon)
             
             prev_ref_line = ref_line
             
@@ -53,7 +53,7 @@ e transcripts")
             
             first_transcript = False
             if prev_ref_line != ref_line: #if the pointer for ref file moved
-                calc_read_proportions(assembled_exon_chain,num_reads)
+                calc_read_proportions(assembled_exon_chain,num_reads,single_exon)
                 
             #now the pointer is at the next transcript of the ref gff file
         
@@ -61,7 +61,7 @@ e transcripts")
             it = 0
             while it < 1900:
                 k,v =pre_output_text.popitem(last=False)
-                output_file.write(v[0].strip('\n')+";read_num="+str(transcript_reads_record.pop(k,0))+'\n')
+                output_file.write(v[0].strip('\n')+";read_num="+str(round(transcript_reads_record.pop(k,0),3))+'\n')
                 output_file.write(''.join(v[1:]))
                 it +=1
                 
@@ -71,7 +71,7 @@ e transcripts")
       #lastly
     if first_transcript == False:
         for k,v in pre_output_text.items():
-            output_file.write(v[0].strip('\n')+";read_num="+str(transcript_reads_record.pop(k,0))+'\n')
+            output_file.write(v[0].strip('\n')+";read_num="+str(round(transcript_reads_record.pop(k,0),3))+'\n')
             output_file.write(''.join(v[1:]))
         #if there are any ref transcripts remaining with no reads
         for line in ref_file.read().splitlines():
@@ -91,6 +91,7 @@ e transcripts")
 def process_assembled_transcript(assembled_line_fields):
     global ref_file
     global assembled_file
+    single_exon = False
     chr_name = assembled_line_fields[0]
     coord_starts = int(assembled_line_fields[3])
     coord_ends = int(assembled_line_fields[4])
@@ -112,8 +113,9 @@ def process_assembled_transcript(assembled_line_fields):
     if len(intron_chain) > 0:
         assembled_exon_chain = "-".join(intron_chain)
     else:
-        assembled_exon_chain=assembled_exon_chain[:-1]
-    return chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line
+        assembled_exon_chain=assembled_exon_chain.split("-")
+        single_exon = True
+    return chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line,single_exon
 
 
 
@@ -174,15 +176,24 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
 
  
 
-def calc_read_proportions(assembled_exon_chain,num_reads):
+def calc_read_proportions(assembled_exon_chain,num_reads,single_exon):
     global transcript_reads_record
     coverages = []
     transcript_ids = []
     
-    for k in ref_exon_chain_record.keys():
-        if assembled_exon_chain in ref_exon_chain_record[k]:
-            coverages.append(coverage_record[k])
-            transcript_ids.append(k)
+    
+    if single_exon:
+        left = assembled_exon_chain[0]
+        right = assembled_exon_chain[1]
+        for k in ref_exon_chain_record.keys():
+            if '-'+left in ref_exon_chain_record[k] or right+'-' in ref_exon_chain_record[k]:
+                coverages.append(coverage_record[k])
+                transcript_ids.append(k)
+    else:
+        for k in ref_exon_chain_record.keys():
+            if assembled_exon_chain in ref_exon_chain_record[k]:
+                coverages.append(coverage_record[k])
+                transcript_ids.append(k)
     coverage_proportions = [num_reads*x / sum(coverages) for x in coverages]
 
     for i in range(len(transcript_ids)):

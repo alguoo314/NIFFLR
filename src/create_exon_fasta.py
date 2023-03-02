@@ -68,7 +68,7 @@ def extract_exon_seq(seq_dict,gff_file,output_file,neg_file):
                 start = int(row[3])
                 end=int(row[4])
                 full_seq=seq_dict[seq_name]
-                exon_seq = full_seq[start+1:end]
+                exon_seq = full_seq[start-1:end]
                 if (direction=='-'):
                     neg_dir_exons.append("{}_{}".format(seq_name,gene_name))
                     exon_seq=exon_seq.translate(conversion)[::-1]

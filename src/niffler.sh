@@ -11,7 +11,7 @@ MIN_MATCH=15
 MIN_CLUSTER=31
 DELTA=false
 QUANT=false
-NUCMER_THREADS=32
+NUCMER_THREADS=16
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -42,16 +42,16 @@ function usage {
     echo "Options (default value in (), *required):"
     echo "-c, --mincluster=uint32  Sets the minimum length of a cluster of matches (31)"
     echo "-d, --discard           If supplied, all the intermediate files will be removed (False)"
-    echo "-f, --fasta             *Path to the fasta file containing the reads"
-    echo "-r, --ref               *Path to the fasta file containing the reference (often refseq)"
-    echo "-g, --gff               *Path to the reference GFF file"
-    echo "-l,--minmatch=uint32    Set the minimum length of a single exact match in nucmer (15)"
-    echo "-n, --nucmer_delta      User provided nucmer file. If provided, the program will skip the nucmer process"
-    echo "-p, --prefix            The prefix of the output gtf files (output)"
+    echo "-f, --fasta string      *Path to the fasta file containing the reads"
+    echo "-r, --ref path          *Path to the fasta file containing the reference (often refseq)"
+    echo "-g, --gff path          *Path to the reference GFF file"
+    echo "-l, --minmatch uint32   Minimum length of a single exact match in nucmer (15)"
+    echo "-n, --nucmer_delta path User provided nucmer delta file. If provided, the program will skip the alignment"
+    echo "-p, --prefix string     Prefix of the output gtf files (output)"
     echo "-q, --quantification    If supplied, niffler will assign the reads back to the reference transcripts based on coverages (False)"
-    echo "-t, --threads            The number threads used for nucmer (32)"
+    echo "-t, --threads uint16    Number of threads (16)"
     echo "-h, --help              This message"
-    echo "-v, --verbose           Output information (False)"
+    echo "-v, --verbose           Verbose mode (False)"
 }
 
 while [[ $# > 0 ]]
@@ -181,9 +181,9 @@ rm -f niffler.find_path.success && \
 touch niffler.voting.success || error_exit "Filtering by majority voting failed"
 if [ "$DISCARD_INTERM" = true ]; then
     log "Removing intermediate files $OUTPUT_PREFIX.one_line_per_match.txt, $OUTPUT_PREFIX.sorted_one_line_per_match.txt, and $OUTPUT_PREFIX.first_two_lines_only.delta" && \
-    rm $OUTPUT_PREFIX.one_line_per_match.txt && \
-    rm $OUTPUT_PREFIX.sorted_one_line_per_match.txt && \
-    rm $OUTPUT_PREFIX.first_two_lines_only.delta
+    rm -f $OUTPUT_PREFIX.one_line_per_match.txt && \
+    rm -f $OUTPUT_PREFIX.sorted_one_line_per_match.txt && \
+    rm -f $OUTPUT_PREFIX.first_two_lines_only.delta
 fi
 fi
 

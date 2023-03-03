@@ -32,6 +32,7 @@ def main():
     list_of_good_entries = []
     list_of_bad_entries = []
     num_lines = 0
+    mapped_read_len = 0
     bad_entries = True
     big_dictionary_good = {} #A big dictionary. key is the sequence of exons, value is the lines to output in gtf file (both transcript and exon)
     big_dictionary_bad = {}
@@ -41,9 +42,9 @@ def main():
             if num_lines > 0:
                 #process the last read
                 if bad_entries:
-                    transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad)
+                    transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad,mapped_read_len)
                 else:
-                    transcript_entries_count_dict_good,big_dictionary_good=add_gtf_lines(list_of_good_entries,transcript_entries_count_dict_good,big_dictionary_good)
+                    transcript_entries_count_dict_good,big_dictionary_good=add_gtf_lines(list_of_good_entries,transcript_entries_count_dict_good,big_dictionary_good,mapped_read_len)
             bad_entries = False
             read_info = l.strip().split('\t')
             read_name = read_info[0][1:]
@@ -55,13 +56,16 @@ def main():
             else:
                 list_of_good_entries = [read_name,score]
             num_lines=0
+            mapped_read_len = 0
             
   
         else:
             num_lines+=1
+            splitted = l.split()
+            mapped_read_len +=(int(splitted[3])-int(splitted[2])+1)
             if first_line == True:
                 first_line = False
-                gene_seg = l.split()[1]
+                gene_seg = splitted[1]
                 gene_name = '_'.join(gene_seg.split('_')[:2])
                 if gene_name in neg_exons_list:
                     direction = '-'
@@ -72,7 +76,7 @@ def main():
                 else:
                     list_of_good_entries.extend([gene_name,direction,gene_seg])
             else:
-               gene_seg = l.split()[1] 
+               gene_seg = splitted[1] 
                if bad_entries:
                    list_of_bad_entries.append(gene_seg)
                else:
@@ -80,16 +84,17 @@ def main():
                
     #finally
     if bad_entries == False:
-        transcript_entries_count_dict_good,big_dictionary_good=add_gtf_lines(list_of_good_entries,transcript_entries_count_dict_good,big_dictionary_good)
+        transcript_entries_count_dict_good,big_dictionary_good=add_gtf_lines(list_of_good_entries,transcript_entries_count_dict_good,big_dictionary_good,mapped_read_len)
     elif bad_entries == True:
-         transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad)
-    big_dictionary_good = collections.OrderedDict(sorted(big_dictionary_good.items()))
-    big_dictionary_bad = collections.OrderedDict(sorted(big_dictionary_bad.items()))
+         transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad,mapped_read_len)
+    #big_dictionary_good = collections.OrderedDict(sorted(big_dictionary_good.items()))
+    #big_dictionary_bad = collections.OrderedDict(sorted(big_dictionary_bad.items()))
+    #is sorting needed?
     with open(args.good,'a') as of:
         for k, v in big_dictionary_good.items():
            transcript_first_8 = v[0] 
            transcript_attributes_col = v[1]
-           transcript_attributes_col = "gene_id \"{}\"; transcript_id \"{}\"; source_reads \"{}\";".format(transcript_attributes_col[0],transcript_attributes_col[1],transcript_attributes_col[2])
+           transcript_attributes_col = "gene_id \"{}\"; transcript_id \"{}\"; source_reads \"{}\"; longest_mapped_read_len \"{}\";".format(transcript_attributes_col[0],transcript_attributes_col[1],transcript_attributes_col[2],transcript_attributes_col[3])
            of.write(transcript_first_8+transcript_attributes_col+'\n')
            for w in range(2,len(v)):
                if w %2 == 0:
@@ -97,14 +102,14 @@ def main():
                else:
                    exon_attributes_col = v[w]
                    exon_attributes_col = "gene_id \"{}\"; transcript_id \"{}\"; exon_number \"{}\; exon_id \"{}\;".format(exon_attributes_col[0],exon_attributes_col[1],exon_attributes_col[2],exon_attributes_col[3])
-                   of.write(exon_first_8+transcript_attributes_col+'\n')
+                   of.write(exon_first_8+transcript_attributes_col.split(" source_reads")[0]+'\n')
 
 
     with open(args.bad,'a') as of:
         for k, v in big_dictionary_bad.items():
            transcript_first_8 = v[0]
            transcript_attributes_col = v[1]
-           transcript_attributes_col = "gene_id \"{}\"; transcript_id \"{}\"; source_reads \"{}\";".format(transcript_attributes_col[0],transcript_attributes_col[1],transcript_attributes_col[2])
+           transcript_attributes_col = "gene_id \"{}\"; transcript_id \"{}\"; source_reads \"{}\"; longest_mapped_read_len \"{}\";".format(transcript_attributes_col[0],transcript_attributes_col[1],transcript_attributes_col[2],transcript_attributes_col[3])
            of.write(transcript_first_8+transcript_attributes_col+'\n')
            for w in range(2,len(v)):
                if w %2 == 0:
@@ -112,10 +117,10 @@ def main():
                else:
                    exon_attributes_col = v[w]
                    exon_attributes_col = "gene_id \"{}\"; transcript_id \"{}\"; exon_number \"{}\; exon_id \"{}\;".format(exon_attributes_col[0],exon_attributes_col[1],exon_attributes_col[2],exon_attributes_col[3])
-                   of.write(exon_first_8+transcript_attributes_col+'\n')
+                   of.write(exon_first_8+transcript_attributes_col.split(" source_reads")[0]+'\n')
 
 
-def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary):
+def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary,mapped_read_len):
     seqname = list_of_entries[2].split('_')[0]
     gene_name = list_of_entries[2].split('_')[1]
     read_name = list_of_entries[0]
@@ -152,6 +157,7 @@ def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary):
 
     if big_dictionary_key in big_dictionary.keys():
         big_dictionary[big_dictionary_key][1][2] = big_dictionary[big_dictionary_key][1][2]+","+read_name
+        big_dictionary[big_dictionary_key][1][3]=max(big_dictionary[big_dictionary_key][1][3],mapped_read_len)
         return transcript_entries_count_dict,big_dictionary #duplication found, no need to rewrite the exon lines below
     elif reversed_big_dictionary_key in big_dictionary.keys():
         big_dictionary[reversed_big_dictionary_key][1][2] = big_dictionary[reversed_big_dictionary_key][1][2]+","+read_name
@@ -159,7 +165,7 @@ def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary):
 
     else:
         updated_reads_list = read_name
-        transcript_attributes= [gene_name,unduplicated_transcript_id,updated_reads_list] #gene_id, transcript_id, source_read
+        transcript_attributes= [gene_name,unduplicated_transcript_id,updated_reads_list,mapped_read_len] #gene_id, transcript_id, source_read
         transcript_entry_first_8 = '\t'.join([seqname,source,'transcript',str(transcript_start),str(transcript_end),str(score),strand,frame])+'\t'
         big_dictionary[big_dictionary_key] = [transcript_entry_first_8,transcript_attributes]
         #add exon lines below                    

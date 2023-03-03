@@ -37,23 +37,29 @@ e transcripts")
     coverage_record = {}
     global transcript_reads_record
     transcript_reads_record = {}
+    global transcript_support_record
+    transcript_support_record = {}
+    global intron_match_record
+    intron_match_record = {}
     num_reads = 0
+    transcript_len = 0
+    max_read_len = 0
     
     output_file.write(output_text)
     while ref_line and assembled_line:
         if assembled_line_fields[2] == "transcript":
-            chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line,single_exon = process_assembled_transcript(assembled_line_fields)
+            chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line,single_exon,max_read_len = process_assembled_transcript(assembled_line_fields)
             #now the pointer is at the next transcript of the assembled gtf file
             if first_transcript == False:
-                calc_read_proportions(assembled_exon_chain,num_reads,single_exon)
+                calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,transcript_len)
             
             prev_ref_line = ref_line
             
-            ref_line_fields,ref_line = process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,chr_name)
+            ref_line_fields,ref_line,transcript_len = process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,chr_name,transcript_len)
             
             first_transcript = False
             if prev_ref_line != ref_line: #if the pointer for ref file moved
-                calc_read_proportions(assembled_exon_chain,num_reads,single_exon)
+                calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,transcript_len)
                 
             #now the pointer is at the next transcript of the ref gff file
         
@@ -61,7 +67,8 @@ e transcripts")
             it = 0
             while it < 1900:
                 k,v =pre_output_text.popitem(last=False)
-                output_file.write(v[0].strip('\n')+";read_num="+str(round(transcript_reads_record.pop(k,0),3))+'\n')
+                intron_matched_frac=intron_match_record.pop(k,[0,0])
+                output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,0),3),intron_matched_frac[0],intron_matched_frac[1]))
                 output_file.write(''.join(v[1:]))
                 it +=1
                 
@@ -71,12 +78,13 @@ e transcripts")
       #lastly
     if first_transcript == False:
         for k,v in pre_output_text.items():
-            output_file.write(v[0].strip('\n')+";read_num="+str(round(transcript_reads_record.pop(k,0),3))+'\n')
+            intron_matched_frac=intron_match_record.pop(k,[0,0])
+            output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,0),3),intron_matched_frac[0],intron_matched_frac[1]))
             output_file.write(''.join(v[1:]))
         #if there are any ref transcripts remaining with no reads
         for line in ref_file.read().splitlines():
             if line.split('\t')[2] == "transcript":
-                output_file.write(line+";read_num=0\n")
+                output_file.write(line+";read_num=0;transcript_support=0;covered_junctions=0/0\n")
             else:
                 output_file.write(line+'\n')
         
@@ -97,6 +105,8 @@ def process_assembled_transcript(assembled_line_fields):
     coord_ends = int(assembled_line_fields[4])
     assembled_exon_chain = ""
     num_reads = len((assembled_line_fields[8].split("source_reads=")[1]).split(","))
+    max_read_len = int(assembled_line_fields[8].split("longest_mapped_read_len=")[1])
+    
     assembled_line = assembled_file.readline()
     if assembled_line !="":
         assembled_line_fields = assembled_line.split('\t')
@@ -115,19 +125,20 @@ def process_assembled_transcript(assembled_line_fields):
     else:
         assembled_exon_chain=assembled_exon_chain.split("-")
         single_exon = True
-    return chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line,single_exon
+    return chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line,single_exon,max_read_len
 
 
 
-def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,chr_name):
+def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,chr_name,transcript_len):
     global output_text
     global coverage_record
     global pre_output_text
     global ref_file
     global ref_exon_chain_record
+    global intron_match_record
     transcript_id = None
     if  chr_num_conversion(ref_line_fields[0]) > chr_num_conversion(chr_name):
-         return ref_line_fields,ref_line
+         return ref_line_fields,ref_line,transcript_len
     
     while ref_line_fields[2] != "transcript" or int(ref_line_fields[4]) < coord_starts or chr_num_conversion(ref_line_fields[0]) < chr_num_conversion(chr_name):
         if ref_line_fields[2] != "transcript":
@@ -140,7 +151,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
         if ref_line != "":
             ref_line_fields = ref_line.split('\t')
         else:
-            return ref_line_fields,ref_line
+            return ref_line_fields,ref_line,transcript_len
         #linear scan
     
     while int(ref_line_fields[3]) <  first_exon_end and ref_line_fields[0] == chr_name:
@@ -149,13 +160,17 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             transcript_id = field_8.split(";")[0]
             coverage = float((field_8.split("cov=")[1]).split(";")[0])
             coverage_record[transcript_id] = coverage
+            transcript_len = 0
             pre_output_text[transcript_id]=[ref_line.strip('\n')]
             ref_line = ref_file.readline()
             ref_line_fields = ref_line.split('\t')
             ref_exon_chain = ""
-            
+        
+        exon_num = 0
         while ref_line_fields[2] == "exon":
+            exon_num +=1
             pre_output_text[transcript_id].append(ref_line)
+            transcript_len += int(ref_line_fields[4])-int(ref_line_fields[3])+1
             ref_exon_chain+=str(ref_line_fields[3])+"-"+str(ref_line_fields[4])+"-"
             ref_line = ref_file.readline()
             if ref_line !="":
@@ -164,20 +179,24 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
                  break
         
         #now we have reached a new transcript
-        
+            
         if len(ref_exon_chain_record) >0 and int(ref_exon_chain_record[next(reversed(ref_exon_chain_record))].split("-")[-2]) < int(ref_exon_chain.split("-")[0]):
             #reduce the total size of ref_exon_chain_record
             #is this too time consuming?
             ref_exon_chain_record = {}
             
         ref_exon_chain_record[transcript_id] = ref_exon_chain
+        
+        intron_match_record[transcript_id] = [0,exon_num-1]
    
-    return ref_line_fields,ref_line
+    return ref_line_fields,ref_line,transcript_len
 
  
 
-def calc_read_proportions(assembled_exon_chain,num_reads,single_exon):
+def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,transcript_len):
     global transcript_reads_record
+    global transcript_support_record
+    global intron_match_record
     coverages = []
     transcript_ids = []
     
@@ -189,13 +208,20 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon):
             if '-'+left in ref_exon_chain_record[k] or right+'-' in ref_exon_chain_record[k]:
                 coverages.append(coverage_record[k])
                 transcript_ids.append(k)
+                transcript_support_record[k] = max(transcript_support_record.pop(k,0),max_read_len/transcript_len)
+                intron_match_record[k][0]=max(0,intron_match_record[k][0])
+                
     else:
         for k in ref_exon_chain_record.keys():
             if assembled_exon_chain in ref_exon_chain_record[k]:
                 coverages.append(coverage_record[k])
                 transcript_ids.append(k)
+                transcript_support_record[k] = max(transcript_support_record.pop(k,0),max_read_len/transcript_len)
+                intron_match_record[k][0] = max(intron_match_record[k][0],int((assembled_exon_chain.count('-')+1)/2)) #this is the number of junctions in the assembled transcript
+                
+                
     coverage_proportions = [num_reads*x / sum(coverages) for x in coverages]
-
+    
     for i in range(len(transcript_ids)):
         transcript_id = transcript_ids[i]
         if transcript_id in transcript_reads_record.keys():
@@ -218,4 +244,3 @@ def chr_num_conversion(chro):
     
 if __name__ == '__main__':
     main()
-

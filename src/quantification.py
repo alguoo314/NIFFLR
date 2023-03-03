@@ -81,12 +81,25 @@ e transcripts")
             intron_matched_frac=intron_match_record.pop(k,[0,0])
             output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,0),3),intron_matched_frac[0],intron_matched_frac[1]))
             output_file.write(''.join(v[1:]))
+
         #if there are any ref transcripts remaining with no reads
+        last_buffer = []
+        exon_num = 0
         for line in ref_file.read().splitlines():
             if line.split('\t')[2] == "transcript":
-                output_file.write(line+";read_num=0;transcript_support=0;covered_junctions=0/0\n")
+                if exon_num > 0 and len(last_buffer)>0:
+                    output_file.write(last_buffer[0]+str(exon_num-1)+'\n'+last_buffer[1])
+                last_buffer = [line+";read_num=0;transcript_support=0;covered_junctions=0/",'']
+                exon_num = 0
             else:
-                output_file.write(line+'\n')
+                if len(last_buffer)>0:
+                    last_buffer[1]+=str(line+'\n')
+                if line.split('\t')[2] == "exon":
+                    exon_num +=1
+
+        if exon_num > 0:
+            output_file.write(last_buffer[0]+str(exon_num-1)+'\n'+last_buffer[1])
+
         
     ref_file.close()
     assembled_file.close()
@@ -139,21 +152,28 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
     transcript_id = None
     if  chr_num_conversion(ref_line_fields[0]) > chr_num_conversion(chr_name):
          return ref_line_fields,ref_line,transcript_len
-    
+
+    exon_num=0
     while ref_line_fields[2] != "transcript" or int(ref_line_fields[4]) < coord_starts or chr_num_conversion(ref_line_fields[0]) < chr_num_conversion(chr_name):
         if ref_line_fields[2] != "transcript":
             pre_output_text[transcript_id].append(ref_line)
+            if ref_line_fields[2]=="exon":
+                exon_num +=1
         else:
+            if exon_num > 0:
+                intron_match_record[transcript_id] = [0,exon_num-1]
+                exon_num = 0
             transcript_id = ref_line_fields[8].split(";")[0]
             pre_output_text[transcript_id]=[ref_line]
-        
+            
         ref_line = ref_file.readline()
         if ref_line != "":
             ref_line_fields = ref_line.split('\t')
         else:
             return ref_line_fields,ref_line,transcript_len
         #linear scan
-    
+    if exon_num > 0:
+        intron_match_record[transcript_id] = [0,exon_num-1]
     while int(ref_line_fields[3]) <  first_exon_end and ref_line_fields[0] == chr_name:
         if ref_line_fields[2] == "transcript":
             field_8 = ref_line_fields[8]

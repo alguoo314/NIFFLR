@@ -32,7 +32,7 @@ def main():
     list_of_good_entries = []
     list_of_bad_entries = []
     num_lines = 0
-    mapped_read_len = 0
+    mapped_read_coord = []
     bad_entries = True
     big_dictionary_good = {} #A big dictionary. key is the sequence of exons, value is the lines to output in gtf file (both transcript and exon)
     big_dictionary_bad = {}
@@ -41,6 +41,7 @@ def main():
             first_line = True   
             if num_lines > 0:
                 #process the last read
+                mapped_read_len = mapped_read_coord[-1]-mapped_read_coord[0]+1
                 if bad_entries:
                     transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad,mapped_read_len)
                 else:
@@ -56,13 +57,13 @@ def main():
             else:
                 list_of_good_entries = [read_name,score]
             num_lines=0
-            mapped_read_len = 0
+            mapped_read_coord = []
             
   
         else:
             num_lines+=1
             splitted = l.split()
-            mapped_read_len +=(int(splitted[3])-int(splitted[2])+1)
+            mapped_read_coord.extend([int(splitted[2]),int(splitted[3])])
             if first_line == True:
                 first_line = False
                 gene_seg = splitted[1]
@@ -83,6 +84,7 @@ def main():
                    list_of_good_entries.append(gene_seg)
                
     #finally
+    mapped_read_len = mapped_read_coord[-1]-mapped_read_coord[0]+1
     if bad_entries == False:
         transcript_entries_count_dict_good,big_dictionary_good=add_gtf_lines(list_of_good_entries,transcript_entries_count_dict_good,big_dictionary_good,mapped_read_len)
     elif bad_entries == True:

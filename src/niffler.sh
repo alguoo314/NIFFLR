@@ -135,8 +135,9 @@ if [ ! -s $MYPATH/generate_gtf.py ];then
 error_exit "generate_gtf.py not found in $MYPATH. It must be in the directory as this script"
 fi
 
-if [ "$QUANT" == true && ! -s $MYPATH/quantification.py ]; then
+if [ "$QUANT" == true && ! -s $MYPATH/quantification.py ];then
 error_exit "quantification.py not found in $MYPATH but the --quantification switch is provided by the user"
+fi
 
 if [ ! -s $INPUT_GFF ];then
 error_exit "The input gff file does not exist. Please supply a valid gff file."
@@ -223,5 +224,3 @@ log "Adding the number of reads corresponded to each transcript onto the gtf ann
 python $MYPATH/add_read_counts.py -a $OUTPUT_PREFIX.annotated.gtf -u $OUTPUT_PREFIX.good_output.gtf -o $OUTPUT_PREFIX.reads_num_added_annotated.gtf && \
 touch niffler.gfftools.success || error_exit "Adding read counts to gtf anno files failed"
 fi
-
-

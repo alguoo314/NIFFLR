@@ -135,7 +135,7 @@ if [ ! -s $MYPATH/generate_gtf.py ];then
 error_exit "generate_gtf.py not found in $MYPATH. It must be in the directory as this script"
 fi
 
-if [ "$QUANT" == true && ! -s $MYPATH/quantification.py ];then
+if [ "$QUANT" == true] && [ ! -s $MYPATH/quantification.py ];then
 error_exit "quantification.py not found in $MYPATH but the --quantification switch is provided by the user"
 fi
 
@@ -202,7 +202,7 @@ rm -f niffler.gfftools.success  && \
 touch niffler.gtf_generation.success || error_exit "GTF generation failed"
 fi
 
-if [ "$QUANT" == true && ! -e niffler.quantification.success ];then
+if [ "$QUANT" = true ] && [ ! -e niffler.quantification.success ];then
 log "Performing reference transcripts quantification"
 sort -k1,1 -V -s $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
 python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $INPUT_GFF -o $OUTPUT_PREFIX.reads.assigned.gff && \

@@ -41,11 +41,13 @@ def main():
             first_line = True   
             if num_lines > 0:
                 #process the last read
-                mapped_read_len = mapped_read_coord[-1]-mapped_read_coord[0]+1
+                mapped_read_info_final=mapped_read_info[:-1].copy()
+                mapped_read_info_final.append(read_mapped_len)
+                total_mapped = [sum(mapped_read_info_final),num_lines-1] #mapped_len,junctions covered 
                 if bad_entries:
-                    transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad,mapped_read_len)
+                    transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad,total_mapped)
                 else:
-                    transcript_entries_count_dict_good,big_dictionary_good=add_gtf_lines(list_of_good_entries,transcript_entries_count_dict_good,big_dictionary_good,mapped_read_len)
+                    transcript_entries_count_dict_good,big_dictionary_good=add_gtf_lines(list_of_good_entries,transcript_entries_count_dict_good,big_dictionary_good,total_mapped)
             bad_entries = False
             read_info = l.strip().split('\t')
             read_name = read_info[0][1:]
@@ -57,13 +59,17 @@ def main():
             else:
                 list_of_good_entries = [read_name,score]
             num_lines=0
-            mapped_read_coord = []
+            mapped_read_info = []
             
   
         else:
             num_lines+=1
             splitted = l.split()
-            mapped_read_coord.extend([int(splitted[2]),int(splitted[3])])
+            read_mapped_len = int(splitted[3])-int(splitted[2])+1
+            if num_lines == 1:
+                mapped_read_info.append(read_mapped_len)
+            else:
+                mapped_read_info.append(int(splitted[6]))
             if first_line == True:
                 first_line = False
                 gene_seg = splitted[1]
@@ -84,14 +90,14 @@ def main():
                    list_of_good_entries.append(gene_seg)
                
     #finally
-    mapped_read_len = mapped_read_coord[-1]-mapped_read_coord[0]+1
+    mapped_read_info_final=mapped_read_info[:-1].copy()
+    mapped_read_info_final.append(read_mapped_len)
+    total_mapped = [sum(mapped_read_info_final),num_lines-1] #mapped_len,junctions covered
     if bad_entries == False:
-        transcript_entries_count_dict_good,big_dictionary_good=add_gtf_lines(list_of_good_entries,transcript_entries_count_dict_good,big_dictionary_good,mapped_read_len)
+        transcript_entries_count_dict_good,big_dictionary_good=add_gtf_lines(list_of_good_entries,transcript_entries_count_dict_good,big_dictionary_good,total_mapped)
     elif bad_entries == True:
-         transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad,mapped_read_len)
-    #big_dictionary_good = collections.OrderedDict(sorted(big_dictionary_good.items()))
-    #big_dictionary_bad = collections.OrderedDict(sorted(big_dictionary_bad.items()))
-    #is sorting needed?
+         transcript_entries_count_dict_bad,big_dictionary_bad=add_gtf_lines(list_of_bad_entries,transcript_entries_count_dict_bad,big_dictionary_bad,total_mapped)
+    
     with open(args.good,'a') as of:
         for k, v in big_dictionary_good.items():
            transcript_first_8 = v[0] 
@@ -122,12 +128,11 @@ def main():
                    of.write(exon_first_8+transcript_attributes_col.split(" source_reads")[0]+'\n')
 
 
-def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary,mapped_read_len):
+def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary,total_mapped):
     seqname = list_of_entries[2].split('_')[0]
     gene_name = list_of_entries[2].split('_')[1]
     read_name = list_of_entries[0]
     source = 'jguo54'
-    #feature = 'gene'
     starts = []
     ends= []
     for i in range(4,len(list_of_entries)):
@@ -159,15 +164,20 @@ def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary,m
 
     if big_dictionary_key in big_dictionary.keys():
         big_dictionary[big_dictionary_key][1][2] = big_dictionary[big_dictionary_key][1][2]+","+read_name
-        big_dictionary[big_dictionary_key][1][3]=max(big_dictionary[big_dictionary_key][1][3],mapped_read_len)
+        if total_mapped[1] >= big_dictionary[big_dictionary_key][1][4]:
+            big_dictionary[big_dictionary_key][1][3]=max(big_dictionary[big_dictionary_key][1][3],total_mapped[0])
+            big_dictionary[big_dictionary_key][1][4]=total_mapped[1]
         return transcript_entries_count_dict,big_dictionary #duplication found, no need to rewrite the exon lines below
     elif reversed_big_dictionary_key in big_dictionary.keys():
         big_dictionary[reversed_big_dictionary_key][1][2] = big_dictionary[reversed_big_dictionary_key][1][2]+","+read_name
+        if total_mapped[1] >= big_dictionary[reversed_big_dictionary_key][1][4]:
+            big_dictionary[reversed_big_dictionary_key][1][3]=max(big_dictionary[reversed_big_dictionary_key][1][3],total_mapped[0])
+            big_dictionary[reversed_big_dictionary_key][1][4]=total_mapped[1]
         return transcript_entries_count_dict,big_dictionary
 
     else:
         updated_reads_list = read_name
-        transcript_attributes= [gene_name,unduplicated_transcript_id,updated_reads_list,mapped_read_len] #gene_id, transcript_id, source_read
+        transcript_attributes= [gene_name,unduplicated_transcript_id,updated_reads_list,total_mapped[0],total_mapped[1]] #gene_id, transcript_id, source_read,read_len, covered_junctions
         transcript_entry_first_8 = '\t'.join([seqname,source,'transcript',str(transcript_start),str(transcript_end),str(score),strand,frame])+'\t'
         big_dictionary[big_dictionary_key] = [transcript_entry_first_8,transcript_attributes]
         #add exon lines below                    

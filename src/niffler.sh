@@ -12,6 +12,7 @@ MIN_CLUSTER=31
 DELTA=false
 QUANT=false
 NUCMER_THREADS=16
+BATCHSIZE=1000000
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -40,7 +41,8 @@ function usage {
     echo "Usage: wrapper_script.sh [options]"
     echo "Options:"
     echo "Options (default value in (), *required):"
-    echo "-c, --mincluster=uint32  Sets the minimum length of a cluster of matches (31)"
+    echo "-b, --batchsize uint32      Proceed by batch of chunks of this number of bases from the reference in nucmer"
+    echo "-c, --mincluster uint32 Sets the minimum length of a cluster of matches in nucmer (31)"
     echo "-d, --discard           If supplied, all the intermediate files will be removed (False)"
     echo "-f, --fasta string      *Path to the fasta file containing the reads"
     echo "-r, --ref path          *Path to the fasta file containing the reference (often refseq)"
@@ -67,6 +69,10 @@ do
             export INPUT_READS="$2"
             shift
             ;;
+	-b|--batchsize)
+	    export BATCHSIZE="$2"
+	    shift
+	    ;;
 	-l|--minmatch)
             export MIN_MATCH="$2"
             shift
@@ -135,7 +141,7 @@ if [ ! -s $MYPATH/generate_gtf.py ];then
 error_exit "generate_gtf.py not found in $MYPATH. It must be in the directory as this script"
 fi
 
-if [ "$QUANT" == true] && [ ! -s $MYPATH/quantification.py ];then
+if [ "$QUANT" == true ] && [ ! -s $MYPATH/quantification.py ];then
 error_exit "quantification.py not found in $MYPATH but the --quantification switch is provided by the user"
 fi
 
@@ -162,7 +168,7 @@ fi
 if [ ! -e niffler.nucmer.success ];then
     if [[ "$DELTA" = false || ! -s $DELTA ]] ; then
 	log "Nucmer delta file not provided or the path is invalid. Running nucmer to align between the exons and the reads" && \
-	nucmer --batch 100000 -l $MIN_MATCH -c $MIN_CLUSTER -p $OUTPUT_PREFIX -t $NUCMER_THREADS $OUTPUT_PREFIX.exons.fna $INPUT_READS
+	nucmer --batch $BATCHSIZE -l $MIN_MATCH -c $MIN_CLUSTER -p $OUTPUT_PREFIX -t $NUCMER_THREADS $OUTPUT_PREFIX.exons.fna $INPUT_READS
     else
 	log "Using existing nucmer file" && \
 	cp $DELTA $OUTPUT_PREFIX.delta

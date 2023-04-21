@@ -73,18 +73,19 @@ def extract_exon_seq(seq_dict,gff_file,output_file,neg_file):
                     neg_dir_exons.append("{}_{}".format(seq_name,gene_name))
                     exon_seq=exon_seq.translate(conversion)[::-1]
                 exon_seq_list.append(exon_seq)
-                
                 headers_list.append("{}_{}_{}_{}".format(seq_name,gene_name,start,end))
             #1-indexed
             
     header_exon_seq_dict = {headers_list[i]: exon_seq_list[i] for i in range(len(headers_list))}
-    random.shuffle(headers_list)
+    #random.shuffle(headers_list)
     with open(output_file,'w') as of:
         for seqname in list(set(headers_list)):
             of.write(">{}\n".format(seqname))
             new_seq = split_output(header_exon_seq_dict[seqname],60)
             for l in new_seq:
                 of.write(l+"\n")
+    
+    
     neg_dir_exons=list(set(neg_dir_exons))
     with open(neg_file,'w') as of:
         of.write('\n'.join(neg_dir_exons))

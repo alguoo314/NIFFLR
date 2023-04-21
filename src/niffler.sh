@@ -7,12 +7,10 @@ INPUT_READS="reads.fasta"
 REF="reference.fasta"
 OUTPUT_PREFIX="output"
 DISCARD_INTERM=false
-MIN_MATCH=15
-MIN_CLUSTER=31
-DELTA=false
 QUANT=false
-NUCMER_THREADS=16
-BATCHSIZE=1000000
+JF_THREADS=16
+BASES=17.0
+MER=15
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -41,14 +39,13 @@ function usage {
     echo "Usage: wrapper_script.sh [options]"
     echo "Options:"
     echo "Options (default value in (), *required):"
-    echo "-b, --batchsize uint32      Proceed by batch of chunks of this number of bases from the reference in nucmer"
-    echo "-c, --mincluster uint32 Sets the minimum length of a cluster of matches in nucmer (31)"
+    echo "-bs, --batchsize uint32 Proceed by batch of chunks of this number of bases from the reference in nucmer"
+    echo "-B, --bases double      For jf_aligner, filter base on percent of bases matching (17.0)"
     echo "-d, --discard           If supplied, all the intermediate files will be removed (False)"
     echo "-f, --fasta string      *Path to the fasta file containing the reads"
     echo "-r, --ref path          *Path to the fasta file containing the reference (often refseq)"
     echo "-g, --gff path          *Path to the reference GFF file"
-    echo "-l, --minmatch uint32   Minimum length of a single exact match in nucmer (15)"
-    echo "-n, --nucmer_delta path User provided nucmer delta file. If provided, the program will skip the alignment"
+    echo "-m, --mer uint32        Mer size (15)"
     echo "-p, --prefix string     Prefix of the output gtf files (output)"
     echo "-q, --quantification    If supplied, niffler will assign the reads back to the reference transcripts based on coverages (False)"
     echo "-t, --threads uint16    Number of threads (16)"
@@ -69,27 +66,23 @@ do
             export INPUT_READS="$2"
             shift
             ;;
-	-b|--batchsize)
+	-bs|--batchsize)
 	    export BATCHSIZE="$2"
 	    shift
 	    ;;
-	-l|--minmatch)
-            export MIN_MATCH="$2"
-            shift
+	-B|--bases) 
+	    export BASES="$2"
+	    shift
             ;;
-	 -c|--mincluster)
-            export MIN_CLUSTER="$2"
-            shift
-            ;;
+	-m|--mer)
+	    export MER="$2"
+	    shift
+	    ;;
 	 -r|--ref)
             export REF="$2"
             shift
             ;;
-	 -n|--nucmer_delta)
-            export DELTA="$2"
-            shift
-            ;;
-	 -p|--prefix)
+	  -p|--prefix)
             export OUTPUT_PREFIX="$2"
             shift
             ;;
@@ -102,7 +95,7 @@ do
             shift
             ;;
 	-t|--threads)
-            export NUCMER_THREADS="$2"
+            export JF_THREADS="$2"
             shift
             ;;
         -v|--verbose)
@@ -141,7 +134,7 @@ if [ ! -s $MYPATH/generate_gtf.py ];then
 error_exit "generate_gtf.py not found in $MYPATH. It must be in the directory as this script"
 fi
 
-if [ "$QUANT" == true ] && [ ! -s $MYPATH/quantification.py ];then
+if [ "$QUANT" = true ] && [ ! -s $MYPATH/quantification.py ];then
 error_exit "quantification.py not found in $MYPATH but the --quantification switch is provided by the user"
 fi
 
@@ -161,37 +154,24 @@ if [ ! -e niffler.exons_extraction.success ];then
 log "Extracting exons from the GFF file and putting them into a fasta file" && \
 log "All exons are listed as in the positive strand" && \
 python $MYPATH/create_exon_fasta.py -r $REF -g $INPUT_GFF -o $OUTPUT_PREFIX.exons.fna -n $OUTPUT_PREFIX.negative_direction_exons.csv  && \
-rm -f niffler.nucmer.success && \
+rm -f niffler.alignment.success && \
 touch niffler.exons_extraction.success || error_exit "exon extraction failed"
 fi
 
-if [ ! -e niffler.nucmer.success ];then
-    if [[ "$DELTA" = false || ! -s $DELTA ]] ; then
-	log "Nucmer delta file not provided or the path is invalid. Running nucmer to align between the exons and the reads" && \
-	nucmer --batch $BATCHSIZE -l $MIN_MATCH -c $MIN_CLUSTER -p $OUTPUT_PREFIX -t $NUCMER_THREADS $OUTPUT_PREFIX.exons.fna $INPUT_READS
-    else
-	log "Using existing nucmer file" && \
-	cp $DELTA $OUTPUT_PREFIX.delta
-    fi
+if [ ! -e niffler.alignment.success ];then
+    log "Running jf_aligner to align between the reads and the reference exons" && \
+    SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}')
+    jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -p $INPUT_READS -r $OUTPUT_PREFIX.exons.fna --coords $OUTPUT_PREFIX.aligned.txt
     rm -f niffler.voting.success && \
-    touch niffler.nucmer.success || error_exit "nucmer failed"
+    touch niffler.alignment.success || error_exit "nucmer failed"
 fi
 
 
 if [ ! -e niffler.voting.success ];then
 log "Perform majority voting such that for each read, only exons of the most-mapped gene to each read is kept under the read" && \
-grep ">" -A 1 --no-group-separator $OUTPUT_PREFIX.delta > $OUTPUT_PREFIX.first_two_lines_only.delta && \
-sed 'N;s/\n/ /g' $OUTPUT_PREFIX.first_two_lines_only.delta > $OUTPUT_PREFIX.one_line_per_match.txt && \
-sort -k2,2 --parallel=32 --buffer-size=80% $OUTPUT_PREFIX.one_line_per_match.txt > $OUTPUT_PREFIX.sorted_one_line_per_match.txt && \
-python $MYPATH/majority_vote.py -i $OUTPUT_PREFIX.sorted_one_line_per_match.txt -o $OUTPUT_PREFIX.majority_voted.fasta -n $OUTPUT_PREFIX.negative_direction_exons.csv && \
+python $MYPATH/majority_vote.py -i $OUTPUT_PREFIX.aligned.txt -o $OUTPUT_PREFIX.majority_voted.fasta -n $OUTPUT_PREFIX.negative_direction_exons.csv && \
 rm -f niffler.find_path.success && \
 touch niffler.voting.success || error_exit "Filtering by majority voting failed"
-if [ "$DISCARD_INTERM" = true ]; then
-    log "Removing intermediate files $OUTPUT_PREFIX.one_line_per_match.txt, $OUTPUT_PREFIX.sorted_one_line_per_match.txt, and $OUTPUT_PREFIX.first_two_lines_only.delta" && \
-    rm -f $OUTPUT_PREFIX.one_line_per_match.txt && \
-    rm -f $OUTPUT_PREFIX.sorted_one_line_per_match.txt && \
-    rm -f $OUTPUT_PREFIX.first_two_lines_only.delta
-fi
 fi
 
 if [ ! -e niffler.find_path.success ];then

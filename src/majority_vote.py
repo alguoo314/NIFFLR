@@ -1,9 +1,9 @@
+#!/usr/bin/env python
 import argparse
+import sys
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i","--inp",default="jf_aligned.txt",help="Path to the jf alignment output")
-    parser.add_argument("-o","--out",default=None,help="Path to the output file")
     parser.add_argument("-n","--neg",default=None,help="Path to the file containing the names of exons on the negative strand")
     args = parser.parse_args()
     
@@ -12,22 +12,23 @@ def main():
     neg_exons_list_file.close()
     
     #majority voting and sorting by position of exon in the genome
-    output_file=open(args.out, 'w')
-    output_file.close()
     prev_read = "NaN"
     weight_dict={}
     exon_dict = {}
-    lines_to_be_written=""
+    lines_to_be_written=[]
     read_counter = 0
-    first_line= True
-    with open(args.inp,'r') as f:
-        for line in f:
-            if first_line:
-                first_line=False
+    headers= True
+    L = sys.stdin.readlines()
+    if len(L)== 0:
+        print("No input found. Please check your jf_aligner parameters.")
+    else:
+        for line in L:
+            if headers and line[0] != '>':
                 continue
-            if line[0] == '>':
+            elif line[0] == '>':
+                headers=False
                 if prev_read != "NaN":
-                    lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,args.out,neg_exons_list,exon_dict,prev_read)
+                    lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,neg_exons_list,exon_dict,prev_read)
                     weight_dict={}
                     exon_dict = {}
                 read_name=line.split()[-1]
@@ -68,11 +69,11 @@ def main():
                 #weight_dict[exon_name]+= matched_len_minus_errors
                 
           
-    read_counter = 9999  #write everything in the exon dict to file
-    lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,args.out,neg_exons_list,exon_dict,prev_read)         
+    read_counter = 10000  #write everything in the exon dict to file
+    lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,neg_exons_list,exon_dict,prev_read)         
     return
 
-def write_exons(lines_to_be_written,read_counter,weight_dict,out,neg_exons_list,exon_dict,read):
+def write_exons(lines_to_be_written,read_counter,weight_dict,neg_exons_list,exon_dict,read):
     if bool(weight_dict):
         best_exon=max(weight_dict, key=weight_dict.get)
         exon_data=exon_dict[best_exon]
@@ -82,18 +83,17 @@ def write_exons(lines_to_be_written,read_counter,weight_dict,out,neg_exons_list,
            else:
               exon_data.sort(key = lambda x: int(x[1]),reverse=True)
 
-           lines_to_be_written += str('>'+read+'\n')
+           lines_to_be_written.append(str('>'+read+'\n'))
            n=0
            read_counter +=1
            for line in exon_data:
                n+=1
-               lines_to_be_written += str('exon'+str(n)+' '+' '.join(str(item) for item in line[2:])+'\n')
+               lines_to_be_written.append(str('exon'+str(n)+' '+' '.join(str(item) for item in line[2:])+'\n'))
 
     if read_counter == 10000:
         read_counter = 0
-        with open(out, 'a') as of:
-            of.write(lines_to_be_written)
-            lines_to_be_written = ""
+        sys.stdout.write("".join(lines_to_be_written))    
+        lines_to_be_written = []
         
     return lines_to_be_written,read_counter
 

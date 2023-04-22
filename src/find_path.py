@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from collections import defaultdict
 import argparse
 import sys
@@ -7,12 +8,9 @@ import numpy as np
 def main():
     sys.setrecursionlimit(2500)
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i","--inp",default='majority_voted.fa',help="Path to the file after majority voting and sorting")
     parser.add_argument("-o","--outp",default='best_paths.txt',help="Path to the output file")
     args = parser.parse_args()
-    inputfile = open(args.inp,'r')
-    Lines = inputfile.readlines()
-    inputfile.close()
+    Lines = sys.stdin.readlines()
     outputfile = open(args.outp,'w')
     outputfile.close()
     outp=args.outp
@@ -23,15 +21,15 @@ def main():
     exon_index_record = None
     i=0
     score_recorder = []
-    to_be_written = ""
+    to_be_written = []
     read_counter = 0
     for l in Lines:
         if l[0]=='>':
             if read_counter == 1000: #write 1000 reads to file
                 read_counter = 0
                 with open(outp,'a') as of:
-                    of.write(to_be_written)
-                to_be_written = ""
+                    of.write("".join(to_be_written))
+                to_be_written = []
             if exons != []:
                 #if only one exon
                 if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (exons[0][4] >=  exons[-1][4]) or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0:
@@ -39,8 +37,8 @@ def main():
                     #just output the longest mapping with min overhang penalty as possible
                     score_recorder.append(0)
                     exons[0][1]=exons[0][1].split("_rePlicate")[0]
-                    to_be_written += str(read_name+'\t'+str(0)+'\n')
-                    to_be_written += str(' '.join(map(str,exons[0][:-1]))+'\n')
+                    to_be_written.append(str(read_name+'\t'+str(0)+'\n'))
+                    to_be_written.append(' '.join(map(str,exons[0][:-1]))+'\n')
                     read_counter +=1 
                     
                 else:        
@@ -77,7 +75,7 @@ def main():
         exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
         #just output the longest mapping with min overhang penalty as possible
         with open(outp,'a') as of:
-            of.write(to_be_written)
+            of.write("".join(to_be_written))
             score_recorder.append(0)
             exons[0][1]=exons[0][1].split("_rePlicate")[0]
             of.write(read_name+'\t'+str(0)+'\n')
@@ -85,7 +83,7 @@ def main():
     else:        
         score_recorder,to_be_written,read_counter=construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter)
         with open(outp,'a') as of:
-            of.write(to_be_written)
+            of.write("".join(to_be_written))
     
     with open('scores.csv','w') as file:   
         csvwriter = csv.writer(file,delimiter='\n')
@@ -181,27 +179,27 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
         if best_path[0].split("_rePlicate")[0] ==  best_path[-1].split("_rePlicate")[0]:
             score = 0
             score_recorder.append(score)
-            to_be_written += str(read_name+'\t'+str(0)+'\n')
+            to_be_written.append(str(read_name+'\t'+str(0)+'\n'))
             exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
-            to_be_written += str(' '.join(map(str,exons[0]))+'\n')
+            to_be_written.append(' '.join(map(str,exons[0]))+'\n')
         else:
             score = round(best_dist/(len(best_path)-1),3)
             score_recorder.append(score)
-            to_be_written += str(read_name+'\t'+str(score)+'\n')
+            to_be_written.append(read_name+'\t'+str(score)+'\n')
             for node in best_path:
                 exon_info = exon_index_record[node]
                 if "rePlicate" in exon_info[1]:
                     exon_info[1]=exon_info[1].split("rePlicate")[0]
                 exon_info[1] = str(exon_info[1])
                 exon_info[2]=str(exon_info[2])
-                to_be_written += str(' '.join(exon_info)+'\n')
+                to_be_written.append(str(' '.join(exon_info)+'\n'))
                
     else:
         read_counter +=1
         score_recorder.append(0)
         exons[0][1]=exons[0][1].split("_rePlicate")[0]
-        to_be_written += str(read_name+'\t'+str(0)+'\n')
-        to_be_written +=(' '.join(map(str,exons[0]))+'\n')
+        to_be_written.append(str(read_name+'\t'+str(0)+'\n'))
+        to_be_written.append(' '.join(map(str,exons[0]))+'\n')
         
             
     return score_recorder,to_be_written,read_counter

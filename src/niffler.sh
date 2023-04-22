@@ -159,27 +159,15 @@ touch niffler.exons_extraction.success || error_exit "exon extraction failed"
 fi
 
 if [ ! -e niffler.alignment.success ];then
-    log "Running jf_aligner to align between the reads and the reference exons" && \
-    SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}')
-    jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -p $INPUT_READS -r $OUTPUT_PREFIX.exons.fna --coords $OUTPUT_PREFIX.aligned.txt
-    rm -f niffler.voting.success && \
+    log "Running jf_aligner to align between the reads and the reference exons, folowed by finding the best path through the exons in each read" && \
+    SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}') && \
+    chmod +x $MYPATH/majority_vote.py && \
+    chmod +x $MYPATH/find_path.py && \
+    jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -p $INPUT_READS -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | ./$MYPATH/majority_vote.py -n $OUTPUT_PREFIX.negative_direction_exons.csv | ./$MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta && \
+    rm -f niffler.gtf_generation.success && \
     touch niffler.alignment.success || error_exit "nucmer failed"
 fi
 
-
-if [ ! -e niffler.voting.success ];then
-log "Perform majority voting such that for each read, only exons of the most-mapped gene to each read is kept under the read" && \
-python $MYPATH/majority_vote.py -i $OUTPUT_PREFIX.aligned.txt -o $OUTPUT_PREFIX.majority_voted.fasta -n $OUTPUT_PREFIX.negative_direction_exons.csv && \
-rm -f niffler.find_path.success && \
-touch niffler.voting.success || error_exit "Filtering by majority voting failed"
-fi
-
-if [ ! -e niffler.find_path.success ];then
-log "Finding best path through the exons in each read" && \
-python $MYPATH/find_path.py -i $OUTPUT_PREFIX.majority_voted.fasta -o $OUTPUT_PREFIX.best_paths.fasta  && \
-rm -f niffler.gtf_generation.success  && \
-touch niffler.find_path.success || error_exit "Finding the best path failed"
-fi
 
 if [ ! -e niffler.gtf_generation.success ];then
 log "Generating the gtf file which converts the pathes of exons as transcripts" && \

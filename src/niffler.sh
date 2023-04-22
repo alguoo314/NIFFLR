@@ -163,9 +163,9 @@ if [ ! -e niffler.alignment.success ];then
     SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}') && \
     chmod +x $MYPATH/majority_vote.py && \
     chmod +x $MYPATH/find_path.py && \
-    jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -p $INPUT_READS -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | ./$MYPATH/majority_vote.py -n $OUTPUT_PREFIX.negative_direction_exons.csv | ./$MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta && \
+    jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -p $INPUT_READS -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | $MYPATH/majority_vote.py -n $OUTPUT_PREFIX.negative_direction_exons.csv | $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta && \
     rm -f niffler.gtf_generation.success && \
-    touch niffler.alignment.success || error_exit "nucmer failed"
+    touch niffler.alignment.success || error_exit "jf_aligner or majority voting or finding the best path failed. Please see the detailed error messages."
 fi
 
 

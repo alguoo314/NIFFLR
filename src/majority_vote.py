@@ -69,7 +69,7 @@ def main():
                 #weight_dict[exon_name]+= matched_len_minus_errors
                 
           
-    read_counter = 10000  #write everything in the exon dict to file
+    read_counter = 1000  #write everything in the exon dict to file
     lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,neg_exons_list,exon_dict,prev_read)         
     return
 
@@ -90,7 +90,7 @@ def write_exons(lines_to_be_written,read_counter,weight_dict,neg_exons_list,exon
                n+=1
                lines_to_be_written.append(str('exon'+str(n)+' '+' '.join(str(item) for item in line[2:])+'\n'))
 
-    if read_counter == 10000:
+    if read_counter >= 1000:
         read_counter = 0
         sys.stdout.write("".join(lines_to_be_written))    
         lines_to_be_written = []

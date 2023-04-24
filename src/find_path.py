@@ -10,7 +10,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-o","--outp",default='best_paths.txt',help="Path to the output file")
     args = parser.parse_args()
-    Lines = sys.stdin.readlines()
     outputfile = open(args.outp,'w')
     outputfile.close()
     outp=args.outp
@@ -23,7 +22,7 @@ def main():
     score_recorder = []
     to_be_written = []
     read_counter = 0
-    for l in Lines:
+    for l in sys.stdin:
         if l[0]=='>':
             if read_counter == 1000: #write 1000 reads to file
                 read_counter = 0

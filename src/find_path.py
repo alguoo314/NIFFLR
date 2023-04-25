@@ -188,7 +188,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             for node in best_path:
                 exon_info = exon_index_record[node]
                 if "rePlicate" in exon_info[1]:
-                    exon_info[1]=exon_info[1].split("rePlicate")[0]
+                    exon_info[1]=exon_info[1].split("_rePlicate")[0]
                 exon_info[1] = str(exon_info[1])
                 exon_info[2]=str(exon_info[2])
                 to_be_written.append(str(' '.join(exon_info)+'\n'))

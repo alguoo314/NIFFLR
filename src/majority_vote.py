@@ -35,9 +35,9 @@ def main():
             else: #alignments
                 info = line.split()
                 exon_name_and_pos=info[-1].split('_')
-                exon_name='_'.join(exon_name_and_pos[0:2])
+                exon_name='_'.join(exon_name_and_pos[:-2])
                 exon_len = int(info[10])
-                exon_seg_start_index = int(exon_name_and_pos[2])
+                exon_seg_start_index = int(exon_name_and_pos[-2])
                 if exon_name not in weight_dict.keys():
                     weight_dict[exon_name] = 0
                     exon_dict[exon_name]=[]

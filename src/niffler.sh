@@ -41,9 +41,9 @@ function usage {
     echo "Options (default value in (), *required):"
     echo "-B, --bases double      For jf_aligner, filter base on percent of bases matching (17.0)"
     echo "-d, --discard           If supplied, all the intermediate files will be removed (False)"
-    echo "-f, --fasta string      *Path to the fasta file containing the reads"
-    echo "-r, --ref path          *Path to the fasta file containing the reference (often refseq)"
-    echo "-g, --gff path          *Path to the reference GFF file"
+    echo "-f, --fasta string      *Path to the fasta/fastq file containing the reads, file can ge gzipped"
+    echo "-r, --ref path          *Path to the fasta file containing the genome sequence"
+    echo "-g, --gff path          *Path to the GFF file for the genome annotation"
     echo "-m, --mer uint32        Mer size (15)"
     echo "-p, --prefix string     Prefix of the output gtf files (output)"
     echo "-q, --quantification    If supplied, niffler will assign the reads back to the reference transcripts based on coverages (False)"
@@ -157,7 +157,10 @@ if [ ! -e niffler.alignment.success ];then
   SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}') && \
   chmod +x $MYPATH/majority_vote.py && \
   chmod +x $MYPATH/find_path.py && \
-  jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -p $INPUT_READS -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | $MYPATH/majority_vote.py -n $OUTPUT_PREFIX.negative_direction_exons.csv | $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta && \
+  zcat -f $INPUT_READS | fastqToFasta.pl |jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -p /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
+  $MYPATH/majority_vote.py -n $OUTPUT_PREFIX.negative_direction_exons.csv | \
+  $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta.tmp && \
+  mv $OUTPUT_PREFIX.best_paths.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
   rm -f niffler.gtf_generation.success && \
   touch niffler.alignment.success || error_exit "jf_aligner or majority voting or finding the best path failed. Please see the detailed error messages."
 fi

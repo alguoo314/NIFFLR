@@ -61,11 +61,17 @@ def extract_exon_seq(seq_dict,gff_file,output_file,neg_file):
                 else:
                     print("INVALID GFF FORMAT?")
                     return
-            else:
+            elif "exon" in row[2]:
+                seq_name =  chr_conversion(row[0])
                 #exon rows
                 if first_gene_or_transcript == False or seq_name not in seq_dict.keys(): #eg. chromosome M
                     continue
                 start = int(row[3])
+                if start == 1:
+                    print(row)
+                    print(seq_name)
+                    print(gene_name)
+                    print("SSSSS")
                 end=int(row[4])
                 full_seq=seq_dict[seq_name]
                 exon_seq = full_seq[start-1:end]

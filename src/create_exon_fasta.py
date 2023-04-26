@@ -13,7 +13,6 @@ def parse_fasta(query_file):
         if line.startswith(">"):
             seq[name] = temp
             name = line.split()[0][1:]
-            name = chr_conversion(name)
             temp = ''
         else:
             temp += line.replace('\n','') #remove whitespaces in the sequence
@@ -23,18 +22,6 @@ def parse_fasta(query_file):
     f.close()
     return seq
 
-def chr_conversion(nc_name):
-    if nc_name[:3] == "chr":
-        return nc_name
-    num=int(nc_name.split('.')[0][3:])
-    if int(num) < 23:
-        return "chr"+str(num)
-    elif int(num)==23:
-        return "chrX"
-    elif int(num)==24:
-        return "chrY"
-    else:
-        return "UnknownChr"
 
 def extract_exon_seq(seq_dict,gff_file,output_file,neg_file):
     exon_seq_list=[]
@@ -51,7 +38,7 @@ def extract_exon_seq(seq_dict,gff_file,output_file,neg_file):
             if ("Parent" not in row[8]) and ("gene" in row[8]) and (row[2] in "transcript mRNA gene"):
                 first_gene_or_transcript = True
                 direction = row[6]
-                seq_name =  chr_conversion(row[0])
+                seq_name =  row[0]
                 if "gene=" in row[8]:
                     gene_name = row[8].split(sep="gene=")[1].split(sep=";")[0]
                 elif "gene_name" in row[8]:
@@ -61,17 +48,11 @@ def extract_exon_seq(seq_dict,gff_file,output_file,neg_file):
                 else:
                     print("INVALID GFF FORMAT?")
                     return
-            elif "exon" in row[2]:
-                seq_name =  chr_conversion(row[0])
+            elif "exon" in row[2]: #the gene name and seq name are from the transcript line because the exons of a transcript always go below the transcript line
                 #exon rows
-                if first_gene_or_transcript == False or seq_name not in seq_dict.keys(): #eg. chromosome M
+                if first_gene_or_transcript == False or seq_name not in seq_dict.keys():
                     continue
                 start = int(row[3])
-                if start == 1:
-                    print(row)
-                    print(seq_name)
-                    print(gene_name)
-                    print("SSSSS")
                 end=int(row[4])
                 full_seq=seq_dict[seq_name]
                 exon_seq = full_seq[start-1:end]

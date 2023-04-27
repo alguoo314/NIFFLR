@@ -34,8 +34,8 @@ def main():
            
             else: #alignments
                 info = line.split()
-                exon_name_and_pos=info[-1].split('_')
-                exon_name='_'.join(exon_name_and_pos[:-2])
+                exon_name_and_pos=info[-1].split('-')
+                exon_name='-'.join(exon_name_and_pos[:-2])
                 exon_len = int(info[10])
                 exon_seg_start_index = int(exon_name_and_pos[-2])
                 if exon_name not in weight_dict.keys():
@@ -61,7 +61,7 @@ def main():
                     overhang_added_read_end = read_end+(exon_len-exon_end)  
                 
             
-                exon_dict[exon_name].append([order,exon_seg_start_index,"_".join(exon_name_and_pos),read_start,read_end,overhang_added_read_start,overhang_added_read_end,exon_len])
+                exon_dict[exon_name].append([order,exon_seg_start_index,"-".join(exon_name_and_pos),read_start,read_end,overhang_added_read_start,overhang_added_read_end,exon_len])
                 weight_dict[exon_name]+= matched_len
                 #matched_len_minus_errors = matched_len-int(info[8]) ask aleksey what to do
                 #weight_dict[exon_name]+= matched_len_minus_errors

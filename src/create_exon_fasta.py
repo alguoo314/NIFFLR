@@ -57,10 +57,10 @@ def extract_exon_seq(seq_dict,gff_file,output_file,neg_file):
                 full_seq=seq_dict[seq_name]
                 exon_seq = full_seq[start-1:end]
                 if (direction=='-'):
-                    neg_dir_exons.append("{}_{}".format(seq_name,gene_name))
+                    neg_dir_exons.append("{}-{}".format(seq_name,gene_name))
                     exon_seq=exon_seq.translate(conversion)[::-1]
                 exon_seq_list.append(exon_seq)
-                headers_list.append("{}_{}_{}_{}".format(seq_name,gene_name,start,end))
+                headers_list.append("{}-{}-{}-{}".format(seq_name,gene_name,start,end))
             #1-indexed
             
     header_exon_seq_dict = {headers_list[i]: exon_seq_list[i] for i in range(len(headers_list))}

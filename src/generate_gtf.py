@@ -73,7 +73,7 @@ def main():
             if first_line == True:
                 first_line = False
                 gene_seg = splitted[1]
-                gene_name = '_'.join(gene_seg.split('_')[:2])
+                gene_name = '-'.join(gene_seg.split('-')[:-2])
                 if gene_name in neg_exons_list:
                     direction = '-'
                 else:
@@ -129,15 +129,15 @@ def main():
 
 
 def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary,total_mapped):
-    seqname = list_of_entries[2].split('_')[0]
-    gene_name = list_of_entries[2].split('_')[1]
+    seqname = list_of_entries[2].split('-')[0]
+    gene_name = "-".join(list_of_entries[2].split('-')[1:])
     read_name = list_of_entries[0]
     source = 'jguo54'
     starts = []
     ends= []
     for i in range(4,len(list_of_entries)):
-        s = int(list_of_entries[i].split('_')[2])
-        e = int(list_of_entries[i].split('_')[3])
+        s = int(list_of_entries[i].split('-')[-2])
+        e = int(list_of_entries[i].split('-')[-1])
         starts.append(s)
         ends.append(e)
     
@@ -151,14 +151,14 @@ def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary,t
     score = list_of_entries[1]
     strand = list_of_entries[3]
     frame = '.'
-    transcript_id = '_'.join([list_of_entries[2],str(transcript_start),str(transcript_end)])
+    transcript_id = '-'.join([list_of_entries[2],str(transcript_start),str(transcript_end)])
     if transcript_id in transcript_entries_count_dict.keys():  
         transcript_entries_count_dict[transcript_id] +=1
     else:
         transcript_entries_count_dict[transcript_id]=1
         
     transcript_attributes = []
-    unduplicated_transcript_id = transcript_id+'_'+str(transcript_entries_count_dict[transcript_id])
+    unduplicated_transcript_id = transcript_id+'-'+str(transcript_entries_count_dict[transcript_id])
     big_dictionary_key = ",".join(list_of_entries[4:])
     reversed_big_dictionary_key = ",".join(list_of_entries[4:][::-1])
 

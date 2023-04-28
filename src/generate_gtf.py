@@ -53,7 +53,7 @@ def main():
             read_name = read_info[0][1:]
             score = float(read_info[1])
             
-            if score > 5:
+            if score > 5 or score==-1:
                 bad_entries = True
                 list_of_bad_entries = [read_name,score]
             else:
@@ -64,7 +64,7 @@ def main():
   
         else:
             num_lines+=1
-            splitted = l.split()
+            splitted = l.split('\t')
             read_mapped_len = int(splitted[3])-int(splitted[2])+1
             if num_lines == 1:
                 mapped_read_info.append(read_mapped_len)

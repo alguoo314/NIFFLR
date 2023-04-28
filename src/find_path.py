@@ -31,13 +31,14 @@ def main():
                 to_be_written = []
             if exons != []:
                 #if only one exon
-                if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (exons[0][4] >=  exons[-1][4]) or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0:
+                if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (exons[0][4] >=  exons[-1][4]) or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0 or exons[0][2] ==  exons[-1][2] or exons[0][3] >=  exons[-1][3]:
                     exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
                     #just output the longest mapping with min overhang penalty as possible
+                    #print(exons)
                     score_recorder.append(0)
                     exons[0][1]=exons[0][1].split("_rePlicate")[0]
                     to_be_written.append(str(read_name+'\t'+str(0)+'\n'))
-                    to_be_written.append(' '.join(map(str,exons[0][:-1]))+'\n')
+                    to_be_written.append('\t'.join(map(str,exons[0][:-1]))+'\n')
                     read_counter +=1 
                     
                 else:        
@@ -63,14 +64,14 @@ def main():
             if start > 0:
                 overhang = int(exon_info[2])-start+end-int(exon_info[3])
             else: # do not penalize the overhang that goes before the start of the read
-                #overhang = int(exon_info[2])-1+end-int(exon_info[3])
                 overhang = end-int(exon_info[3])
             overhangs_penalty = max(0,(overhang-2)*0.1)
             exons.append([exon_info[0],exon_name,exon_info[2],exon_info[3],start,end,exon_info[6],overhangs_penalty])
             exon_index_record[exon_name] = exon_info
             
      #final
-    if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or exons[0][4] >=  exons[-1][4] or exons[0][5] >=  exons[-1][5] or  exons[-1][4] < 0:
+    
+    if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (exons[0][4] >=  exons[-1][4]) or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0 or exons[0][2] ==  exons[-1][2] or exons[0][3] >=  exons[-1][3]:
         exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
         #just output the longest mapping with min overhang penalty as possible
         with open(outp,'a') as of:
@@ -78,13 +79,13 @@ def main():
             score_recorder.append(0)
             exons[0][1]=exons[0][1].split("_rePlicate")[0]
             of.write(read_name+'\t'+str(0)+'\n')
-            of.write(' '.join(map(str,exons[0][:-1]))+'\n')             
+            of.write('\t'.join(map(str,exons[0][:-1]))+'\n')             
     else:        
         score_recorder,to_be_written,read_counter=construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter)
         with open(outp,'a') as of:
             of.write("".join(to_be_written))
     
-    with open('scores.csv','w') as file:   
+    with open('scores.csv','w') as file: #this is mostly for statsitical calculation of the percentage of each score range before determining the cutoff was 5. Can remove before publishing
         csvwriter = csv.writer(file,delimiter='\n')
         csvwriter.writerow(score_recorder)
          
@@ -105,22 +106,31 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
     for i in range(len(exons)):
         node_1_info = exons[i]
         node_1_name =  node_1_info[1]
+        node_1_coords = [int(node_1_name.split('-')[-2]),int(node_1_name.split('-')[-1])]
         unconnected_nodes.add(node_1_name)
         for j in range(i+1,len(exons)):
             node_2_info = exons[j]
             node_2_name =  node_2_info[1]
             diff = node_2_info[4]-node_1_info[5]
+            node_2_coords = [int(node_2_name.split('-')[-2]),int(node_2_name.split('-')[-1])]
+            
             #nonneg weight (gap or overlap)
             if diff > 0: 
                 length = abs(diff)-1
             else:
                 length = abs(diff)+1
-            edges_candidates.append([node_1_name, node_2_name, length])
+
+            if check_overlap([node_1_coords,node_2_coords]):
+                overlap_forbidden = float("inf")
+            else:
+                overlap_forbidden = length
+             
+            edges_candidates.append([node_1_name, node_2_name, length,overlap_forbidden])
 
     weights = extract_w(edges_candidates)
     thres = (np.min(weights)+10)*2
     for e in edges_candidates:
-        g.addEdge(e[0], e[1], e[2]) #still add the edge even if the gap/overlap is above the threshold. Prevent segmentation in the middle
+        g.addEdge(e[0], e[1], e[2],e[3]) #still add the edge even if the gap/overlap is above the threshold. Prevent segmentation in the middle
         if e[2]<=thres:
             unconnected_nodes.discard(e[0])
             unconnected_nodes.discard(e[1])
@@ -138,7 +148,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
     destination_candidate_nodes = set()
     destination_candidate_nodes.add(destination[1])
     for ex in range(1,len(exons)):
-        if exons[ex][4] <= 0 or exons[ex][4] < exons[0][4]: 
+        if exons[ex][4] <= 0 or exons[ex][4] <= exons[0][4] or exons[ex][2] == exons[0][2]: 
             name = exons[ex][1]
             if name not in unconnected_nodes:
                 #min_end_pos = min(min_end_pos,exons[ex][5])
@@ -146,7 +156,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             #add all exons that start with the very beginning of the read
     
     for ex2 in reversed(range(len(exons)-1)):
-        if exons[ex2][5] >= exons[-1][5] or exons[ex2][4]== exons[-1][4]:
+        if exons[ex2][5] >= exons[-1][5] or exons[ex2][3] == exons[-1][3]:
             name = exons[ex2][1]
             if name not in unconnected_nodes:
                 destination_candidate_nodes.add(name)
@@ -160,45 +170,79 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             for name in same_exons_record[destination[1].split("_rePlicate")[0]]:
                 if name not in unconnected_nodes:
                     destination_candidate_nodes.add(name)
-    
+
         possible_paths = []
-        for node1 in origin_candidate_nodes:
-            for node2 in destination_candidate_nodes:
-                if node1 != node2:
-                    dist, overhang_penalized_dist,path = g.shortestPath(node1,node2,overhang_pen_dict)
+        possible_paths_no_overlaps = []
+        intersec=origin_candidate_nodes.intersection(destination_candidate_nodes)
+        if len(intersec) > 0:
+            for node in intersec:
+                possible_paths.append([0,overhang_pen_dict[node],[node]])
+                possible_paths_no_overlaps.append([0,overhang_pen_dict[node],[node]])
+        else:
+            for node1 in origin_candidate_nodes:
+                for node2 in destination_candidate_nodes:
+                    dist, overhang_penalized_dist,path = g.shortestPath(node1,node2,overhang_pen_dict,True) #allow overlap
+                    dist_over, overhang_penalized_dist_no_over,path_no_over = g.shortestPath(node1,node2,overhang_pen_dict,False) #not allow overlap
                     if dist != None:
                         possible_paths.append([dist, overhang_penalized_dist, path])
-
-        possible_paths.sort(key = lambda x: (int(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
+                    if dist_over != None:
+                        possible_paths_no_overlaps.append([dist_over, overhang_penalized_dist_no_over,path_no_over])
+                        
+            possible_paths.sort(key = lambda x: (int(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
+            possible_paths_no_overlaps.sort(key = lambda x: (int(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
         # if there is a tie of score between two paths, choose the path that spans the most of the reads (actual match, not overhangs)
         best = possible_paths[0]
+        best_no_overlap = possible_paths_no_overlaps[0]
         best_dist = best[0]
         best_path = best[2]
-        read_counter +=1
+        best_dist_overlap =best_no_overlap[0]
+        best_path_overlap = best_no_overlap[2]
+        
         if best_path[0].split("_rePlicate")[0] ==  best_path[-1].split("_rePlicate")[0]:
             score = 0
             score_recorder.append(score)
             to_be_written.append(str(read_name+'\t'+str(0)+'\n'))
             exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
-            to_be_written.append(' '.join(map(str,exons[0]))+'\n')
+            to_be_written.append('\t'.join(map(str,exons[0]))+'\n')
         else:
-            score = round(best_dist/(len(best_path)-1),3)
-            score_recorder.append(score)
-            to_be_written.append(read_name+'\t'+str(score)+'\n')
-            for node in best_path:
-                exon_info = exon_index_record[node]
-                if "rePlicate" in exon_info[1]:
-                    exon_info[1]=exon_info[1].split("_rePlicate")[0]
-                exon_info[1] = str(exon_info[1])
-                exon_info[2]=str(exon_info[2])
-                to_be_written.append(str(' '.join(exon_info)+'\n'))
-               
+            #check for overlap: It refers to the overlap between exon positions in reference file, not where it aligns to the reads            
+            if best_path == best or best_dist_overlap > 5:
+                if best_path != best:
+                    score =-1
+                else:
+                    score = round(best_dist/(len(best_path)-1),3)
+                to_be_written.append(str(read_name+'\t'+str(score)+'\n'))
+                for node in best_path:
+                    exon_info = exon_index_record[node]
+                    if "rePlicate" in exon_info[1]:
+                        exon_info[1]=exon_info[1].split("_rePlicate")[0]
+                    exon_info_splitted_again=exon_info[1].split('-')
+                    exon_info[1] = str(exon_info[1])
+                    exon_info[2]=str(exon_info[2])
+                    to_be_written.append(str('\t'.join(exon_info)+'\n'))
+                
+                score_recorder.append(score)
+            
+            elif best_dist_overlap <= 5:
+                score = round(best_dist_overlap/(len(best_path_overlap)-1),3)
+                to_be_written.append(str(read_name+'\t'+str(score)+'\n'))
+                for node in best_path_overlap:
+                    exon_info = exon_index_record[node]
+                    if "rePlicate" in exon_info[1]:
+                        exon_info[1]=exon_info[1].split("_rePlicate")[0]
+                    exon_info_splitted_again=exon_info[1].split('-')
+                    exon_info[1] = str(exon_info[1])
+                    exon_info[2]=str(exon_info[2])
+                    to_be_written.append(str('\t'.join(exon_info)+'\n'))
+                
+                score_recorder.append(score)
+                
     else:
         read_counter +=1
         score_recorder.append(0)
         exons[0][1]=exons[0][1].split("_rePlicate")[0]
         to_be_written.append(str(read_name+'\t'+str(0)+'\n'))
-        to_be_written.append(' '.join(map(str,exons[0]))+'\n')
+        to_be_written.append('\t'.join(map(str,exons[0]))+'\n')
         
             
     return score_recorder,to_be_written,read_counter
@@ -206,7 +250,12 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
         
     
  
-
+def check_overlap(intervals):
+    intervals.sort() 
+    for i in range(1, len(intervals)):
+        if intervals[i-1][1] >= intervals[i][0]:
+            return True
+    return False
 
 class Graph:
     def __init__(self,vertices):
@@ -219,8 +268,8 @@ class Graph:
         self.graph = defaultdict(list)
  
     # function to add an edge to graph
-    def addEdge(self,u,v,w):
-        self.graph[u].append((v,w))
+    def addEdge(self,u,v,w,w_no_overlap):
+        self.graph[u].append((v,[w,w_no_overlap]))
  
  
     # A recursive function used by shortestPath
@@ -242,7 +291,7 @@ class Graph:
     ''' The function to find shortest paths from given vertex.
         It uses recursive topologicalSortUtil() to get topological
         sorting of given graph.'''
-    def shortestPath(self,s,s2,overhang_pen_dict):
+    def shortestPath(self,s,s2,overhang_pen_dict,overlap_allowed):
         visited = {}
         # Mark all the vertices as not visited
         for v in self.verts:
@@ -275,12 +324,18 @@ class Graph:
             i = stack.pop()
  
             # Update distances of all adjacent vertices
-            for node,weight in self.graph[i]:
-                if dist_overhang_penalized[node] > dist_overhang_penalized[i] + weight + overhang_pen_dict[node]:
-                    dist[node] = dist[i] + weight
-                    dist_overhang_penalized[node] = dist_overhang_penalized[i] + weight + overhang_pen_dict[node]
-                    prevs[node]=i
- 
+            if overlap_allowed:
+                for node,weight in self.graph[i]:
+                    if dist_overhang_penalized[node] > dist_overhang_penalized[i] + weight[0] + overhang_pen_dict[node]:
+                        dist[node] = dist[i] + weight[0]
+                        dist_overhang_penalized[node] = dist_overhang_penalized[i] + weight[0] + overhang_pen_dict[node]
+                        prevs[node]=i
+            else:
+                for node,weight in self.graph[i]:
+                    if dist_overhang_penalized[node] > dist_overhang_penalized[i] + weight[1] + overhang_pen_dict[node]:
+                        dist[node] = dist[i] + weight[1]
+                        dist_overhang_penalized[node] = dist_overhang_penalized[i] + weight[0] + overhang_pen_dict[node]
+                        prevs[node]=i
         # Print the calculated shortest distances
         final_dist = dist[s2]
         final_dist_overhang_penalized = dist_overhang_penalized[s2]

@@ -187,16 +187,20 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
                         possible_paths.append([dist, overhang_penalized_dist, path])
                     if dist_over != None:
                         possible_paths_no_overlaps.append([dist_over, overhang_penalized_dist_no_over,path_no_over])
-                        
+            
             possible_paths.sort(key = lambda x: (int(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
             possible_paths_no_overlaps.sort(key = lambda x: (int(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
         # if there is a tie of score between two paths, choose the path that spans the most of the reads (actual match, not overhangs)
+        
         best = possible_paths[0]
-        best_no_overlap = possible_paths_no_overlaps[0]
         best_dist = best[0]
         best_path = best[2]
-        best_dist_overlap =best_no_overlap[0]
-        best_path_overlap = best_no_overlap[2]
+        best_path_no_overlap = None
+        if len(possible_paths_no_overlaps) > 0:
+            best_no_overlap = possible_paths_no_overlaps[0]
+            best_dist_no_overlap =best_no_overlap[0]
+            best_path_no_overlap = best_no_overlap[2]
+
         
         if best_path[0].split("_rePlicate")[0] ==  best_path[-1].split("_rePlicate")[0]:
             score = 0
@@ -205,9 +209,10 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
             to_be_written.append('\t'.join(map(str,exons[0]))+'\n')
         else:
+            
             #check for overlap: It refers to the overlap between exon positions in reference file, not where it aligns to the reads            
-            if best_path == best or best_dist_overlap > 5:
-                if best_path != best:
+            if len(possible_paths_no_overlaps)==0 or best_path == best_path_no_overlap or (best_dist_no_overlap/(len(best_path_no_overlap)-1) > 5):
+                if best_path != best_path_no_overlap:
                     score =-1
                 else:
                     score = round(best_dist/(len(best_path)-1),3)
@@ -223,10 +228,10 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
                 
                 score_recorder.append(score)
             
-            elif best_dist_overlap <= 5:
-                score = round(best_dist_overlap/(len(best_path_overlap)-1),3)
+            elif best_dist_no_overlap/(len(best_path_no_overlap)-1) <= 5:
+                score = round(best_dist_no_overlap/(len(best_path_no_overlap)-1),3)
                 to_be_written.append(str(read_name+'\t'+str(score)+'\n'))
-                for node in best_path_overlap:
+                for node in best_path_no_overlap:
                     exon_info = exon_index_record[node]
                     if "rePlicate" in exon_info[1]:
                         exon_info[1]=exon_info[1].split("_rePlicate")[0]
@@ -334,7 +339,7 @@ class Graph:
                 for node,weight in self.graph[i]:
                     if dist_overhang_penalized[node] > dist_overhang_penalized[i] + weight[1] + overhang_pen_dict[node]:
                         dist[node] = dist[i] + weight[1]
-                        dist_overhang_penalized[node] = dist_overhang_penalized[i] + weight[0] + overhang_pen_dict[node]
+                        dist_overhang_penalized[node] = dist_overhang_penalized[i] + weight[1] + overhang_pen_dict[node]
                         prevs[node]=i
         # Print the calculated shortest distances
         final_dist = dist[s2]

@@ -34,15 +34,19 @@ def main():
                 if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (exons[0][4] >=  exons[-1][4]) or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0 or exons[0][2] ==  exons[-1][2] or exons[0][3] >=  exons[-1][3]:
                     exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
                     #just output the longest mapping with min overhang penalty as possible
-                    #print(exons)
                     score_recorder.append(0)
                     exons[0][1]=exons[0][1].split("_rePlicate")[0]
                     to_be_written.append(str(read_name+'\t'+str(0)+'\n'))
                     to_be_written.append('\t'.join(map(str,exons[0][:-1]))+'\n')
                     read_counter +=1 
                     
-                else:        
-                    score_recorder,to_be_written,read_counter= construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter)
+                else:
+                    chr_and_gene_name = '-'.join(exons[0][1].split('-')[:-2])
+                    if chr_and_gene_name[-1] == 'R':
+                        neg = True
+                    else:
+                        neg = False
+                    score_recorder,to_be_written,read_counter= construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg)
             read_name = l.strip()
             exons = []
             same_exons_record = {}
@@ -95,7 +99,7 @@ def extract_w(lst):
  
 
           
-def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter):
+def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg):
     exon_names_list = [x[1] for x in exons]
     overhang_penalties = [x[-1] for x in exons]
     overhang_pen_dict = dict(map(lambda i,j : (i,j) , exon_names_list,overhang_penalties))
@@ -120,6 +124,10 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             else:
                 length = abs(diff)+1
 
+            if (neg == False and node_1_coords[0] > node_2_coords[0]) or (neg and node_1_coords[0] < node_2_coords[0]):
+                length = float("inf")
+                #the order of exons in the gff reference file cannot be violated here 
+            
             if check_overlap([node_1_coords,node_2_coords]):
                 overlap_forbidden = float("inf")
             else:

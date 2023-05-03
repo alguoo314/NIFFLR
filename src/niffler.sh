@@ -147,7 +147,7 @@ fi
 if [ ! -e niffler.exons_extraction.success ];then
   log "Extracting exons from the GFF file and putting them into a fasta file" && \
   log "All exons are listed as in the positive strand" && \
-  python $MYPATH/create_exon_fasta.py -r $REF -g $INPUT_GFF -o $OUTPUT_PREFIX.exons.fna -n $OUTPUT_PREFIX.negative_direction_exons.csv  && \
+  python $MYPATH/create_exon_fasta.py -r $REF -g $INPUT_GFF -o $OUTPUT_PREFIX.exons.fna  && \
   rm -f niffler.alignment.success && \
   touch niffler.exons_extraction.success || error_exit "exon extraction failed"
 fi
@@ -158,7 +158,7 @@ if [ ! -e niffler.alignment.success ];then
   chmod +x $MYPATH/majority_vote.py && \
   chmod +x $MYPATH/find_path.py && \
   zcat -f $INPUT_READS | fastqToFasta.pl |jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -p /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
-  $MYPATH/majority_vote.py -n $OUTPUT_PREFIX.negative_direction_exons.csv | \
+  $MYPATH/majority_vote.py | \
   $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
   rm -f niffler.gtf_generation.success && \
@@ -168,7 +168,7 @@ fi
 
 if [ ! -e niffler.gtf_generation.success ];then
   log "Generating the gtf file which converts the pathes of exons as transcripts" && \
-  python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf -n $OUTPUT_PREFIX.negative_direction_exons.csv  && \
+  python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf  && \
   rm -f niffler.gfftools.success  && \
   touch niffler.gtf_generation.success || error_exit "GTF generation failed"
 fi

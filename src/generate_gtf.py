@@ -13,7 +13,6 @@ def main():
     parser.add_argument("-i","--inp",default='best_paths.txt',help="Path to the file containing the best paths")
     parser.add_argument("-g","--good",default='good_output.gtf',help="Path to the output gtf file containing transcripts with penalty score <= 5")
     parser.add_argument("-b","--bad",default='bad_output.gtf',help="Path to the output gtf file containing transcripts with penalty score > 5")
-    parser.add_argument("-n","--neg",default='negative_direction_exons.csv',help="Path to the csv file containing the negative direction exons")
     args = parser.parse_args()
     inputfile = open(args.inp,'r')
     Lines = inputfile.readlines()
@@ -22,9 +21,7 @@ def main():
     outputgoodfile.close()
     outputbadfile = open(args.bad,'w')
     outputbadfile.close()
-    neg_exons_list_file = open(args.neg,'r')
-    neg_exons_list=neg_exons_list_file.read().splitlines()
-    neg_exons_list_file.close()
+    
     first_line = False
     score = None
     transcript_entries_count_dict_good = {}
@@ -74,10 +71,11 @@ def main():
                 first_line = False
                 gene_seg = splitted[1]
                 gene_name = '-'.join(gene_seg.split('-')[:-2])
-                if gene_name in neg_exons_list:
+                if gene_name[-1] == 'R':
                     direction = '-'
                 else:
                     direction = '+'
+                gene_name=gene_name[:-2]
                 if bad_entries:
                     list_of_bad_entries.extend([gene_name,direction,gene_seg])
                 else:

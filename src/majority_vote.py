@@ -3,13 +3,6 @@ import argparse
 import sys
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-n","--neg",default=None,help="Path to the file containing the names of exons on the negative strand")
-    args = parser.parse_args()
-    
-    neg_exons_list_file = open(args.neg,'r')
-    neg_exons_list=neg_exons_list_file.read().splitlines()
-    neg_exons_list_file.close()
     
     #majority voting and sorting by position of exon in the genome
     prev_read = "NaN"
@@ -26,7 +19,7 @@ def main():
             elif line[0] == '>':
                 headers=False
                 if prev_read != "NaN":
-                    lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,neg_exons_list,exon_dict,prev_read)
+                    lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,exon_dict,prev_read)
                     weight_dict={}
                     exon_dict = {}
                 read_name=line.split()[-1]
@@ -68,15 +61,16 @@ def main():
                 
           
     read_counter = 10000  #write everything in the exon dict to file
-    lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,neg_exons_list,exon_dict,prev_read)         
+    lines_to_be_written,read_counter=write_exons(lines_to_be_written,read_counter,weight_dict,exon_dict,prev_read)         
     return
 
-def write_exons(lines_to_be_written,read_counter,weight_dict,neg_exons_list,exon_dict,read):
+def write_exons(lines_to_be_written,read_counter,weight_dict,exon_dict,read):
     if bool(weight_dict):
         best_exon=max(weight_dict, key=weight_dict.get)
         exon_data=exon_dict[best_exon]
+        orientation = best_exon[-1]
         if len(exon_data) > 0:
-           if (exon_data[0][0]=='+' and best_exon not in neg_exons_list) or (exon_data[0][0]=='-' and best_exon in neg_exons_list):
+           if (exon_data[0][0]=='+' and orientation == 'F') or (exon_data[0][0]=='-' and orientation == 'R'):
               exon_data.sort(key = lambda x: int(x[1]))
            else:
               exon_data.sort(key = lambda x: int(x[1]),reverse=True)

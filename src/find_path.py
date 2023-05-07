@@ -84,8 +84,13 @@ def main():
             exons[0][1]=exons[0][1].split("_rePlicate")[0]
             of.write(read_name+'\t'+str(0)+'\n')
             of.write('\t'.join(map(str,exons[0][:-1]))+'\n')             
-    else:        
-        score_recorder,to_be_written,read_counter=construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter)
+    else:
+         chr_and_gene_name = '-'.join(exons[0][1].split('-')[:-2])
+         if chr_and_gene_name[-1] == 'R':
+             neg = True                 
+         else:
+             neg = False
+        score_recorder,to_be_written,read_counter=construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg)
         with open(outp,'a') as of:
             of.write("".join(to_be_written))
     

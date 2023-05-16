@@ -36,7 +36,7 @@ function error_exit {
 }
 
 function usage {
-    echo "Usage: wrapper_script.sh [options]"
+    echo "Usage: nifflr.sh [options]"
     echo "Options:"
     echo "Options (default value in (), *required):"
     echo "-B, --bases double      For jf_aligner, filter base on percent of bases matching (17.0)"

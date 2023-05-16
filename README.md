@@ -1,2 +1,2 @@
-# Nifflr: Novel IsoForm Finder using Long RNASeq Reads
+# NIFFLR: Novel IsoForm Finder using Long RNASeq reads
 

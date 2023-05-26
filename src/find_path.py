@@ -70,12 +70,12 @@ def main():
             else: # do not penalize the overhang that goes before the start of the read
                 overhang = end-int(exon_info[3])
             overhangs_penalty = max(0,(overhang-2)*0.1)
-            exons.append([exon_info[0],exon_name,exon_info[2],exon_info[3],start,end,exon_info[6],overhangs_penalty])
+            exons.append([exon_info[0],exon_name,int(exon_info[2]),int(exon_info[3]),start,end,int(exon_info[6]),float(overhangs_penalty)])
             exon_index_record[exon_name] = exon_info
             
      #final
     
-    if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (exons[0][4] >=  exons[-1][4]) or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0 or exons[0][2] ==  exons[-1][2] or exons[0][3] >=  exons[-1][3]:
+    if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (int(exons[0][4]) >=  int(exons[-1][4])) or int(exons[0][5]) >=  int(exons[-1][5]) or int(exons[-1][4]) < 0 or int(exons[0][2]) <= int(exons[-1][2]) or int(exons[0][3]) >=  int(exons[-1][3]):
         exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
         #just output the longest mapping with min overhang penalty as possible
         with open(outp,'a') as of:
@@ -161,7 +161,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
     destination_candidate_nodes = set()
     destination_candidate_nodes.add(destination[1])
     for ex in range(1,len(exons)):
-        if exons[ex][4] <= 0 or exons[ex][4] <= exons[0][4] or exons[ex][2] == exons[0][2]: 
+        if int(exons[ex][4]) <= 0 or int(exons[ex][4]) <= int(exons[0][4]) or int(exons[ex][2]) <= int(exons[0][2]): 
             name = exons[ex][1]
             if name not in unconnected_nodes:
                 #min_end_pos = min(min_end_pos,exons[ex][5])
@@ -169,7 +169,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             #add all exons that start with the very beginning of the read
     
     for ex2 in reversed(range(len(exons)-1)):
-        if exons[ex2][5] >= exons[-1][5] or exons[ex2][3] == exons[-1][3]:
+        if int(exons[ex2][5]) >= int(exons[-1][5]) or int(exons[ex2][3]) >= int(exons[-1][3]):
             name = exons[ex2][1]
             if name not in unconnected_nodes:
                 destination_candidate_nodes.add(name)

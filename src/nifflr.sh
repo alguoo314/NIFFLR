@@ -186,7 +186,7 @@ fi
 
 if [ ! -e niffler.gfftools.success ];then
   log "Running gffread -T --cluster-only and gffcompare -r  to group transcripts into loci and compare with the reference exons" && \
-  gffread -T --cluster-only $OUTPUT_PREFIX.good_output.gtf &> $OUTPUT_PREFIX.after_gffread.gtf && \
+  gffread -T $OUTPUT_PREFIX.good_output.gtf &> $OUTPUT_PREFIX.after_gffread.gtf && \
   gffcompare -T --no-merge -r $INPUT_GFF $OUTPUT_PREFIX.after_gffread.gtf -o $OUTPUT_PREFIX && \
   rm -f niffler.count.success  && \
   touch niffler.gfftools.success || error_exit "gffread or gffcompare failed, please check the error messages for details"

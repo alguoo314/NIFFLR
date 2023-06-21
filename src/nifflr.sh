@@ -177,8 +177,10 @@ if [ "$QUANT" = true ] && [ ! -e niffler.quantification.success ];then
   log "Performing reference transcripts quantification"
   sort -k1,1 -V -s $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
   sort -k1,1 -V -s $INPUT_GFF > $OUTPUT_PREFIX.sorted.ref.gff && \
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $INPUT_GFF -o $OUTPUT_PREFIX.reads.assigned.gff && \
+  awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.ref.gff > chr_names.txt
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $INPUT_GFF -o $OUTPUT_PREFIX.reads.assigned.gff -c chr_names.txt && \
   rm $OUTPUT_PREFIX.sorted.ref.gff && \
+  rm chr_names.txt && \    
   touch niffler.quantification.success || error_exit "Reference transcripts quantification failed"    
 fi
 

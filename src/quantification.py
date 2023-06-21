@@ -8,10 +8,20 @@ ow gap penalty")
     parser.add_argument("-r","--ref",default="reference.gff",help="The GFF file containing the reference")
     parser.add_argument("-o","--outp",default="read_count_added_reference.gff",help="Path to the output GFF file with the number of reads added to the referenc\
 e transcripts")
+    parser.add_argument("-c","--chr_names",default="chr_names.txt",help="A file containing the chromosome names, aka the first field of the reference gff file")
     args = parser.parse_args()
     global ref_file
     global assembled_file
     global pre_output_text
+    global chr_names_orders
+    chr_names_orders = {}
+    with open(args.chr_names, "r") as chrfile:
+        i=0
+        for line in chrfile:
+            chrom = line.strip()
+            chr_names_orders[chrom]=i
+            i+=1
+
     ref_file = open(args.ref,'r')
     assembled_file = open(args.assembled,'r')
     output_file = open(args.outp,'w')
@@ -260,15 +270,7 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_le
 
 
 def chr_num_conversion(chro):
-    num = chro.split("chr")[1]
-    if num.isnumeric():
-        return int(num)
-    elif num == "X":
-        return 23
-    elif num=="Y":
-        return 24
-    else: #for example M
-        return 25
+    return chr_names_orders[chro]
     
 if __name__ == '__main__':
     main()

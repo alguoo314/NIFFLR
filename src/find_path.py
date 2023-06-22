@@ -42,12 +42,14 @@ def main():
                     
                 else:
                     chr_and_gene_name = '-'.join(exons[0][1].split('-')[:-2])
-                    if chr_and_gene_name[-1] == 'R':
+                    if (chr_and_gene_name[-1] == 'R')+(mapped_ori=='-') == 1: #only 1 is true
                         neg = True
                     else:
                         neg = False
                     score_recorder,to_be_written,read_counter= construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg)
-            read_name = l.strip()
+            read_name_and_mapped_ori = l.strip().split('\t')
+            read_name = read_name_and_mapped_ori[0]
+            mapped_ori=read_name_and_mapped_ori[1]
             exons = []
             same_exons_record = {}
             exon_index_record={}
@@ -75,7 +77,7 @@ def main():
             
      #final
     
-    if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (int(exons[0][4]) >=  int(exons[-1][4])) or int(exons[0][5]) >=  int(exons[-1][5]) or int(exons[-1][4]) < 0 or int(exons[0][2]) <= int(exons[-1][2]) or int(exons[0][3]) >=  int(exons[-1][3]):
+    if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (int(exons[0][4]) >=  int(exons[-1][4])) or int(exons[0][5]) >=  int(exons[-1][5]) or int(exons[-1][4]) < 0 or int(exons[0][2]) == int(exons[-1][2]) or int(exons[0][3]) >=  int(exons[-1][3]):
         exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
         #just output the longest mapping with min overhang penalty as possible
         with open(outp,'a') as of:
@@ -86,7 +88,7 @@ def main():
             of.write('\t'.join(map(str,exons[0][:-1]))+'\n')             
     else:
         chr_and_gene_name = '-'.join(exons[0][1].split('-')[:-2])
-        if chr_and_gene_name[-1] == 'R':
+        if (chr_and_gene_name[-1] == 'R')+(mapped_ori=='-') == 1:
             neg = True                 
         else:
             neg = False

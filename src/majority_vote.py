@@ -35,25 +35,24 @@ def main():
                     weight_dict[exon_name] = 0
                     exon_dict[exon_name]=[]
             
-           
                 order ='+'
-                matched_len = int(info[3])-int(info[2])+1
                 exon_start = int(info[2])
                 exon_end = int(info[3])
                 read_start = int(info[0])
                 read_end = int(info[1])
-                if read_start > read_end:
-                    temp=read_start
-                    read_start = read_end
-                    read_end=temp
+                if exon_start > exon_end:
+                    temp=exon_start
+                    exon_start = exon_end
+                    exon_end=temp
                     order = '-'
                     overhang_added_read_start = read_start-(exon_len-exon_end) #1 based
                     overhang_added_read_end = read_end+exon_start-1
                 else:
                     overhang_added_read_start = read_start-(exon_start-1)                                         
                     overhang_added_read_end = read_end+(exon_len-exon_end)  
+
+                matched_len = exon_end-exon_start+1
                 
-            
                 exon_dict[exon_name].append([order,exon_seg_start_index,"-".join(exon_name_and_pos),read_start,read_end,overhang_added_read_start,overhang_added_read_end,exon_len])
                 weight_dict[exon_name]+= matched_len
                 #matched_len_minus_errors = matched_len-int(info[8]) ask aleksey what to do

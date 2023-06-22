@@ -166,7 +166,6 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
         if int(exons[ex][4]) <= 0 or int(exons[ex][4]) <= int(exons[0][4]) or int(exons[ex][2]) <= int(exons[0][2]): 
             name = exons[ex][1]
             if name not in unconnected_nodes:
-                #min_end_pos = min(min_end_pos,exons[ex][5])
                 origin_candidate_nodes.add(exons[ex][1])
             #add all exons that start with the very beginning of the read
     
@@ -193,7 +192,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             for node in intersec:
                 possible_paths.append([0,overhang_pen_dict[node],[node]])
                 possible_paths_no_overlaps.append([0,overhang_pen_dict[node],[node]])
-        else:
+        else:            
             for node1 in origin_candidate_nodes:
                 for node2 in destination_candidate_nodes:
                     dist, overhang_penalized_dist,path = g.shortestPath(node1,node2,overhang_pen_dict,True) #allow overlap
@@ -272,9 +271,8 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
  
 def check_overlap(intervals):
     intervals.sort() 
-    for i in range(1, len(intervals)):
-        if intervals[i-1][1] >= intervals[i][0]:
-            return True
+    if intervals[0][1] >= intervals[1][0]:
+        return True
     return False
 
 class Graph:

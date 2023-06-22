@@ -31,10 +31,7 @@ def main():
                 exon_name='-'.join(exon_name_and_pos[:-2])
                 exon_len = int(info[10])
                 exon_seg_start_index = int(exon_name_and_pos[-2])
-                if exon_name not in weight_dict.keys():
-                    weight_dict[exon_name] = 0
-                    exon_dict[exon_name]=[]
-            
+                            
            
                 order ='+'
                 exon_start = int(info[2])
@@ -53,9 +50,14 @@ def main():
                     overhang_added_read_end = read_end+(exon_len-exon_end)  
 
                 matched_len = exon_end-exon_start+1
-            
-                exon_dict[exon_name].append([order,exon_seg_start_index,"-".join(exon_name_and_pos),read_start,read_end,overhang_added_read_start,overhang_added_read_end,exon_len])
-                weight_dict[exon_name]+= matched_len
+
+                if exon_name+order not in weight_dict.keys():
+                    weight_dict[exon_name+order] = 0
+                    exon_dict[exon_name+order]=[]
+
+                
+                exon_dict[exon_name+order].append([order,exon_seg_start_index,"-".join(exon_name_and_pos),read_start,read_end,overhang_added_read_start,overhang_added_read_end,exon_len])
+                weight_dict[exon_name+order]+= matched_len
                 
                 
           
@@ -67,14 +69,15 @@ def write_exons(lines_to_be_written,read_counter,weight_dict,exon_dict,read):
     if bool(weight_dict):
         best_exon=max(weight_dict, key=weight_dict.get)
         exon_data=exon_dict[best_exon]
-        orientation = best_exon[-1]
+        order = best_exon[-1] #the mapping direction
+        orientation = best_exon[-2] #the orientation of the exon written in reference
         if len(exon_data) > 0:
-           if (exon_data[0][0]=='+' and orientation == 'F') or (exon_data[0][0]=='-' and orientation == 'R'):
+           if (order=='+' and orientation == 'F') or (order=='-' and orientation == 'R'):
               exon_data.sort(key = lambda x: int(x[1]))
            else:
               exon_data.sort(key = lambda x: int(x[1]),reverse=True)
 
-           lines_to_be_written.append(str('>'+read+'\t'+exon_data[0][0]+'\n'))
+           lines_to_be_written.append(str('>'+read+'\t'+order+'\n'))
            n=0
            read_counter +=1
            for line in exon_data:

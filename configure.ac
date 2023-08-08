@@ -175,6 +175,6 @@ AM_CONDITIONAL([RUBY_BINDING], [false])
 # Output configuration files
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([jellyfish/jellyfish-2.0.pc])
-m4_map_args_w([ufasta PacBio jellyfish],
+m4_map_args_w([ufasta PacBio jellyfish src],
               [AC_CONFIG_FILES(], [/Makefile)])
 AC_OUTPUT

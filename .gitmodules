@@ -1,0 +1,9 @@
+[submodule "jellyfish"]
+	path = jellyfish
+	url = git@github.com:alekseyzimin/jellyfish.git
+[submodule "PacBio"]
+	path = PacBio
+	url = git@github.com:alekseyzimin/PacBio.git
+[submodule "ufasta"]
+	path = ufasta
+	url = git@github.com:alekseyzimin/ufasta.git

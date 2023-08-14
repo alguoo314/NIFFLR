@@ -29,12 +29,24 @@ def extract_exon_seq(seq_dict,gff_file,output_file):
     a_string="ACTGactg"
     conversion=a_string.maketrans("ACTGactg","TGACtgac")
     neg_dir_exons = []
-    
+    gene_name = ""
+
     with open(gff_file,'r') as csvfile:
         reader = csv.reader(csvfile, delimiter='\t')
         for row in reader:
             if len(row) != 9:
                 continue
+            if "transcript" in row[2] or "mRNA" in row[2]:
+                if "gene=" in row[8]:
+                    gene_name = row[8].split(sep="gene=")[1].split(sep=";")[0]
+                elif "gene_name" in row[8]:
+                    gene_name = row[8].split(sep="gene_name=")[1].split(sep=";")[0]
+                elif "geneID" in row[8]:
+                    gene_name = row[8].split(sep="geneID=")[1].split(sep=";")[0]
+                else:
+                    print("INVALID GFF FORMAT?")
+                    return
+
             if "exon" in row[2]: 
                 seq_name =  row[0]
                 if seq_name not in seq_dict.keys():
@@ -49,9 +61,6 @@ def extract_exon_seq(seq_dict,gff_file,output_file):
                     gene_name = row[8].split(sep="gene_name=")[1].split(sep=";")[0]
                 elif "geneID" in row[8]:
                     gene_name = row[8].split(sep="geneID=")[1].split(sep=";")[0]
-                else:
-                    print("INVALID GFF FORMAT?")
-                    return
                 
                 exon_seq = full_seq[start-1:end]
                 orientation='F'

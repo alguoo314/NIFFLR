@@ -1,4 +1,5 @@
 import argparse
+import sys
 from collections import OrderedDict
 
 def main():
@@ -14,6 +15,8 @@ e transcripts")
     global assembled_file
     global pre_output_text
     global chr_names_orders
+    global cov_info
+    cov_info = True
     chr_names_orders = {}
     with open(args.chr_names, "r") as chrfile:
         i=0
@@ -57,6 +60,8 @@ e transcripts")
     
     output_file.write(output_text)
     while ref_line and assembled_line:
+        if ref_line[0] == "#":
+            continue
         if assembled_line_fields[2] == "transcript":
             chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line,single_exon,max_read_len,num_junc = process_assembled_transcript(assembled_line_fields)
             #now the pointer is at the next transcript of the assembled gtf file
@@ -96,6 +101,8 @@ e transcripts")
         last_buffer = []
         exon_num = 0
         for line in ref_file.read().splitlines():
+            if line[0] == "#":
+                continue
             if line.split('\t')[2] == "transcript":
                 if exon_num > 0 and len(last_buffer)>0:
                     output_file.write(last_buffer[0]+str(exon_num-1)+'\n'+last_buffer[1])
@@ -107,7 +114,7 @@ e transcripts")
                 if line.split('\t')[2] == "exon":
                     exon_num +=1
 
-        if exon_num > 0:
+        if exon_num > 0 and len(last_buffer) > 0:
             output_file.write(last_buffer[0]+str(exon_num-1)+'\n'+last_buffer[1])
 
         
@@ -162,6 +169,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
     global ref_file
     global ref_exon_chain_record
     global intron_match_record
+    global cov_info
     transcript_id = None
     if  chr_num_conversion(ref_line_fields[0]) > chr_num_conversion(chr_name):
          return ref_line_fields,ref_line,transcript_len
@@ -191,7 +199,14 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
         if ref_line_fields[2] == "transcript":
             field_8 = ref_line_fields[8]
             transcript_id = field_8.split(";")[0]
-            coverage = float((field_8.split("cov=")[1]).split(";")[0])
+            if cov_info == False:
+                coverage = 1.0
+            elif cov_info== True and "cov=" not in field_8:
+                coverage = 1.0
+                cov_info = False
+                sys.stderr.write("Transcript Coverage is not listed as 'cov=' in the attribute column of the GFF file. Assuming equal coverage for all transcripts.\n")
+            else:
+                coverage = float((field_8.split("cov=")[1]).split(";")[0])
             coverage_record[transcript_id] = coverage
             transcript_len = 0
             pre_output_text[transcript_id]=[ref_line.strip('\n')]

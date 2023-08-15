@@ -46,7 +46,7 @@ function usage {
     echo "-g, --gff path          *Path to the GFF file for the genome annotation"
     echo "-m, --mer uint32        Mer size (15)"
     echo "-p, --prefix string     Prefix of the output gtf files (output)"
-    echo "-q, --quantification    If supplied, niffler will assign the reads back to the reference transcripts based on coverages (False)"
+    echo "-q, --quantification    If supplied, NIFFLR will assign the reads back to the reference transcripts based on coverages (False)"
     echo "-t, --threads uint16    Number of threads (16)"
     echo "-h, --help              This message"
     echo "-v, --verbose           Verbose mode (False)"
@@ -167,7 +167,7 @@ fi
 
 
 if [ ! -e niffler.gtf_generation.success ];then
-  log "Generating the gtf file which converts the pathes of exons as transcripts" && \
+  log "Generating the gtf file which converts the paths of exons to transcripts" && \
   python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf  && \
   rm -f niffler.gfftools.success  && \
   touch niffler.gtf_generation.success || error_exit "GTF generation failed"

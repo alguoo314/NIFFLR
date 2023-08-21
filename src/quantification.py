@@ -196,7 +196,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
     if exon_num > 0:
         intron_match_record[transcript_id] = [0,exon_num-1]
     while int(ref_line_fields[3]) <  first_exon_end and ref_line_fields[0] == chr_name:
-        if ref_line_fields[2] == "transcript":
+        if ref_line_fields[2] == "transcript" or ref_line_fields[2] == "mRNA":
             field_8 = ref_line_fields[8]
             transcript_id = field_8.split(";")[0]
             if cov_info == False:

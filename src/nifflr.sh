@@ -157,7 +157,7 @@ if [ ! -e niffler.alignment.success ];then
   SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}') && \
   chmod +x $MYPATH/majority_vote.py && \
   chmod +x $MYPATH/find_path.py && \
-  zcat -f $INPUT_READS | fastqToFasta.pl |jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -p /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
+  zcat -f $INPUT_READS | fastqToFasta.pl |jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
   $MYPATH/majority_vote.py | \
   $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \

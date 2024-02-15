@@ -144,15 +144,15 @@ if [ ! -s $INPUT_READS ];then
 error_exit "The input reads file does not exist. Please supply a valid fasta file containing the reads."
 fi
 
-if [ ! -e niffler.exons_extraction.success ];then
+if [ ! -e nifflr.exons_extraction.success ];then
   log "Extracting exons from the GFF file and putting them into a fasta file" && \
   log "All exons are listed as in the positive strand" && \
   python $MYPATH/create_exon_fasta.py -r $REF -g $INPUT_GFF -o $OUTPUT_PREFIX.exons.fna  && \
-  rm -f niffler.alignment.success && \
-  touch niffler.exons_extraction.success || error_exit "exon extraction failed"
+  rm -f nifflr.alignment.success && \
+  touch nifflr.exons_extraction.success || error_exit "exon extraction failed"
 fi
 
-if [ ! -e niffler.alignment.success ];then
+if [ ! -e nifflr.alignment.success ];then
   log "Running jf_aligner to align between the reads and the reference exons, folowed by finding the best path through the exons in each read" && \
   SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}') && \
   chmod +x $MYPATH/majority_vote.py && \
@@ -161,39 +161,40 @@ if [ ! -e niffler.alignment.success ];then
   $MYPATH/majority_vote.py | \
   $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
-  rm -f niffler.gtf_generation.success && \
-  touch niffler.alignment.success || error_exit "jf_aligner or majority voting or finding the best path failed. Please see the detailed error messages."
+  rm -f nifflr.gtf_generation.success && \
+  touch nifflr.alignment.success || error_exit "jf_aligner or majority voting or finding the best path failed. Please see the detailed error messages."
 fi
 
-
-if [ ! -e niffler.gtf_generation.success ];then
+if [ ! -e nifflr.gtf_generation.success ];then
   log "Generating the gtf file which converts the paths of exons to transcripts" && \
   python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf  && \
-  rm -f niffler.gfftools.success  && \
-  touch niffler.gtf_generation.success || error_exit "GTF generation failed"
+  rm -f nifflr.count.success  && \
+  touch nifflr.gtf_generation.success || error_exit "GTF generation failed"
 fi
 
-if [ "$QUANT" = true ] && [ ! -e niffler.quantification.success ];then
+if [ "$QUANT" = true ] && [ ! -e nifflr.quantification.success ];then
   log "Performing reference transcripts quantification"
-  sort -k1,1 -V -s $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
-  sort -k1,1 -V -s $INPUT_GFF > $OUTPUT_PREFIX.sorted.ref.gff && \
+  sort -S 10% -k1,1 -V -s $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
+  sort -S 10% -k1,1 -V -s $INPUT_GFF | gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
   awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.ref.gff > chr_names.txt
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $INPUT_GFF -o $OUTPUT_PREFIX.reads.assigned.gff -c chr_names.txt && \
-  rm $OUTPUT_PREFIX.sorted.ref.gff && \
-  rm chr_names.txt && \    
-  touch niffler.quantification.success || error_exit "Reference transcripts quantification failed"    
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o $OUTPUT_PREFIX.reads.assigned.gff -c chr_names.txt && \
+  rm $OUTPUT_PREFIX.sorted.ref.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt && \
+  touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"    
 fi
 
-if [ ! -e niffler.gfftools.success ];then
-  log "Running gffread -T --cluster-only and gffcompare -r  to group transcripts into loci and compare with the reference exons" && \
-  gffread -T $OUTPUT_PREFIX.good_output.gtf &> $OUTPUT_PREFIX.after_gffread.gtf && \
-  gffcompare -T --no-merge -r $INPUT_GFF $OUTPUT_PREFIX.after_gffread.gtf -o $OUTPUT_PREFIX && \
-  rm -f niffler.count.success  && \
-  touch niffler.gfftools.success || error_exit "gffread or gffcompare failed, please check the error messages for details"
-fi
-
-if [ ! -e niffler.count.success ];then
-  log "Adding the number of reads corresponded to each transcript onto the gtf anno file produced in the above step" && \
+if [ ! -e nifflr.count.success ];then
+  log "Adding the number of reads corresponding to each transcript to the gtf file" && \
+  gffcompare -T --no-merge -r $INPUT_GFF <(gffread -T $OUTPUT_PREFIX.good_output.gtf) -o $OUTPUT_PREFIX 1>/dev/null 2>&1 && \
   python $MYPATH/add_read_counts.py -a $OUTPUT_PREFIX.annotated.gtf -u $OUTPUT_PREFIX.good_output.gtf -o $OUTPUT_PREFIX.reads_num_added_annotated.gtf && \
-  touch niffler.gfftools.success || error_exit "Adding read counts to gtf anno files failed"
+  gffcompare -STC $OUTPUT_PREFIX.reads_num_added_annotated.gtf -o combined && \
+  #here we need to insert the code that takes the number of reads for each transcript from $OUTPUT_PREFIX.reads_num_added_annotated.gtf,
+  #and then uses containment information from combined.redundant.gtf to add up all reads from the containees intot he containers and add the number of reads 
+  #to combined.combined.gtf
+  touch nifflr.count.success || error_exit "Adding read counts failed, please check the error messages for details"
 fi
+
+if [ -e nifflr.count.success ];then
+  log "Final output file with the read counts is $OUTPUT_PREFIX.reads_num_added_annotated.gtf"
+fi
+
+

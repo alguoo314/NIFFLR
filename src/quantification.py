@@ -175,9 +175,10 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
          return ref_line_fields,ref_line,transcript_len
 
     exon_num=0
-    while ref_line_fields[2] != "transcript" or int(ref_line_fields[4]) < coord_starts or chr_num_conversion(ref_line_fields[0]) < chr_num_conversion(chr_name):
-        if ref_line_fields[2] != "transcript":
-            pre_output_text[transcript_id].append(ref_line)
+    while (ref_line_fields[2] != "transcript" and ref_line_fields[2] != "mRNA") or int(ref_line_fields[4]) < coord_starts or chr_num_conversion(ref_line_fields[0]) < chr_num_conversion(chr_name):
+        if ref_line_fields[2] != "transcript" and ref_line_fields[2] != "mRNA":
+            if transcript_id != None:
+                pre_output_text[transcript_id].append(ref_line)
             if ref_line_fields[2]=="exon":
                 exon_num +=1
         else:

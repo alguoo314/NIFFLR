@@ -31,7 +31,7 @@ Options (default value in (), *required):
 -d, --discard           If supplied, all the intermediate files will be removed (False)
 -f, --fasta string      *Path to the fasta/fastq file containing the reads, file can ge gzipped
 -r, --ref path          *Path to the fasta file containing the genome sequence
--g, --gff path          *Path to the GFF file for the genome annotation
+-g, --gff path          *Path to the GTF file for the genome annotation
 -m, --mer uint32        Mer size (15)
 -p, --prefix string     Prefix of the output gtf files (output)
 -q, --quantification    If supplied, niffler will assign the reads back to the reference transcripts based on coverages (False)

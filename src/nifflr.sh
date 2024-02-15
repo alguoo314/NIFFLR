@@ -2,7 +2,7 @@
 MYPATH="`dirname \"$0\"`"
 MYPATH="`( cd \"$MYPATH\" && pwd )`"
 export PATH=$MYPATH:$PATH;
-INPUT_GFF="input.gff"
+INPUT_GTF="input.gtf"
 INPUT_READS="reads.fasta"
 REF="reference.fasta"
 OUTPUT_PREFIX="output"
@@ -43,7 +43,7 @@ function usage {
     echo "-d, --discard           If supplied, all the intermediate files will be removed (False)"
     echo "-f, --fasta string      *Path to the fasta/fastq file containing the reads, file can ge gzipped"
     echo "-r, --ref path          *Path to the fasta file containing the genome sequence"
-    echo "-g, --gff path          *Path to the GFF file for the genome annotation"
+    echo "-g, --gtf path          *Path to the GTF file for the genome annotation"
     echo "-m, --mer uint32        Mer size (15)"
     echo "-p, --prefix string     Prefix of the output gtf files (output)"
     echo "-q, --quantification    If supplied, NIFFLR will assign the reads back to the reference transcripts based on coverages (False)"
@@ -58,7 +58,7 @@ do
 
     case $key in
         -g|--gff)
-            export INPUT_GFF="$2"
+            export INPUT_GTF="$2"
             shift
             ;;
         -f|--fasta)
@@ -132,7 +132,7 @@ if [ "$QUANT" = true ] && [ ! -s $MYPATH/quantification.py ];then
 error_exit "quantification.py not found in $MYPATH but the --quantification switch is provided by the user"
 fi
 
-if [ ! -s $INPUT_GFF ];then
+if [ ! -s $INPUT_GTF ];then
 error_exit "The input gff file does not exist. Please supply a valid gff file."
 fi
 
@@ -147,7 +147,7 @@ fi
 if [ ! -e nifflr.exons_extraction.success ];then
   log "Extracting exons from the GFF file and putting them into a fasta file" && \
   log "All exons are listed as in the positive strand" && \
-  python $MYPATH/create_exon_fasta.py -r $REF -g $INPUT_GFF -o $OUTPUT_PREFIX.exons.fna  && \
+  python $MYPATH/create_exon_fasta.py -r $REF -g <(gffread -F $INPUT_GTF) -o $OUTPUT_PREFIX.exons.fna  && \
   rm -f nifflr.alignment.success && \
   touch nifflr.exons_extraction.success || error_exit "exon extraction failed"
 fi
@@ -173,28 +173,32 @@ if [ ! -e nifflr.gtf_generation.success ];then
 fi
 
 if [ "$QUANT" = true ] && [ ! -e nifflr.quantification.success ];then
-  log "Performing reference transcripts quantification"
-  sort -S 10% -k1,1 -V -s $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
-  sort -S 10% -k1,1 -V -s $INPUT_GFF | awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
-  awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.ref.gff > chr_names.txt
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o $OUTPUT_PREFIX.reads.assigned.gff -c chr_names.txt && \
+  log "Performing quantification of reference transcripts"
+  sort -S 10% -k1,1 -Vs $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
+  sort -S 10% -k1,1 -Vs $INPUT_GTF | awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
+  awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.ref.gff > chr_names.txt && \
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o $OUTPUT_PREFIX.ref.reads.assigned.gff -c chr_names.txt && \
   rm $OUTPUT_PREFIX.sorted.ref.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt && \
+  log "Reference transcripts quantified in $OUTPUT_PREFIX.ref.reads.assigned.gff" && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"    
 fi
 
 if [ ! -e nifflr.count.success ];then
-  log "Adding the number of reads corresponding to each transcript to the gtf file" && \
-  gffcompare -T --no-merge -r $INPUT_GFF <(gffread -T $OUTPUT_PREFIX.good_output.gtf) -o $OUTPUT_PREFIX 1>/dev/null 2>&1 && \
-  python $MYPATH/add_read_counts.py -a $OUTPUT_PREFIX.annotated.gtf -u $OUTPUT_PREFIX.good_output.gtf -o $OUTPUT_PREFIX.reads_num_added_annotated.gtf && \
-  gffcompare -STC $OUTPUT_PREFIX.reads_num_added_annotated.gtf -o combined && \
-  #here we need to insert the code that takes the number of reads for each transcript from $OUTPUT_PREFIX.reads_num_added_annotated.gtf,
-  #and then uses containment information from combined.redundant.gtf to add up all reads from the containees intot he containers and add the number of reads 
-  #to combined.combined.gtf
-  touch nifflr.count.success || error_exit "Adding read counts failed, please check the error messages for details"
+  log "Performing quantification of assembled transcripts" && \
+  gffcompare -STC $OUTPUT_PREFIX.good_output.gtf -o $OUTPUT_PREFIX 1>gffcmp.out 2>&1 && \
+  sort -S 10% -k1,1 -Vs $OUTPUT_PREFIX.combined.gtf | gffread -F > $OUTPUT_PREFIX.sorted.combined.gff && \
+  sort -S 10% -k1,1 -Vs $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
+  awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.combined.gff > chr_names.txt && \
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt && \
+  rm $OUTPUT_PREFIX.sorted.combined.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt && \
+  #gffcompare -T --no-merge -r $INPUT_GTF <(gffread -T $OUTPUT_PREFIX.good_output.gtf) -o $OUTPUT_PREFIX 1>/dev/null 2>&1 && \
+  #python $MYPATH/add_read_counts.py -a $OUTPUT_PREFIX.annotated.gtf -u $OUTPUT_PREFIX.good_output.gtf -o $OUTPUT_PREFIX.reads_num_added_annotated.gtf && \
+  #gffcompare -STC $OUTPUT_PREFIX.reads_num_added_annotated.gtf -o combined && \
+  touch nifflr.count.success || error_exit "Assembled transcripts quantification failed"
 fi
 
 if [ -e nifflr.count.success ];then
-  log "Final output file with the read counts is $OUTPUT_PREFIX.reads_num_added_annotated.gtf"
+  log "Assembled transcripts and quantifications are in $OUTPUT_PREFIX.asm.reads.assigned.gff"
 fi
 
 

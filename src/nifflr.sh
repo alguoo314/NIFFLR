@@ -175,7 +175,7 @@ fi
 if [ "$QUANT" = true ] && [ ! -e nifflr.quantification.success ];then
   log "Performing reference transcripts quantification"
   sort -S 10% -k1,1 -V -s $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
-  sort -S 10% -k1,1 -V -s $INPUT_GFF | gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
+  sort -S 10% -k1,1 -V -s $INPUT_GFF | awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
   awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.ref.gff > chr_names.txt
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o $OUTPUT_PREFIX.reads.assigned.gff -c chr_names.txt && \
   rm $OUTPUT_PREFIX.sorted.ref.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt && \

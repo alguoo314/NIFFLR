@@ -45,7 +45,7 @@ function usage {
     echo "-r, --ref path          *Path to the fasta file containing the genome sequence"
     echo "-g, --gtf path          *Path to the GTF file for the genome annotation"
     echo "-m, --mer uint32        Mer size (15)"
-    echo "-p, --prefix string     Prefix of the output gtf files (output)"
+    echo "-p, --prefix string     Prefix of the output files (output)"
     echo "-q, --quantification    If supplied, NIFFLR will assign the reads back to the reference transcripts based on coverages (False)"
     echo "-t, --threads uint16    Number of threads (16)"
     echo "-h, --help              This message"
@@ -57,7 +57,7 @@ do
     key="$1"
 
     case $key in
-        -g|--gff)
+        -g|--gtf)
             export INPUT_GTF="$2"
             shift
             ;;
@@ -191,6 +191,7 @@ if [ ! -e nifflr.count.success ];then
   awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.combined.gff > chr_names.txt && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt && \
   rm $OUTPUT_PREFIX.sorted.combined.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt && \
+  perl -F'\t' -ane 'BEGIN{$flag=0;}{if($F[2] eq "transcript"){$count=0;@f=split(/;/,$F[8]);for($i=0;$i<=$#f;$i++){if($f[$i] =~ /^read_num=/){@ff=split(/=/,$f[$i]);$count=$ff[1]}}}print if($count>5)}' $OUTPUT_PREFIX.asm.reads.assigned.gff > $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff    
   #gffcompare -T --no-merge -r $INPUT_GTF <(gffread -T $OUTPUT_PREFIX.good_output.gtf) -o $OUTPUT_PREFIX 1>/dev/null 2>&1 && \
   #python $MYPATH/add_read_counts.py -a $OUTPUT_PREFIX.annotated.gtf -u $OUTPUT_PREFIX.good_output.gtf -o $OUTPUT_PREFIX.reads_num_added_annotated.gtf && \
   #gffcompare -STC $OUTPUT_PREFIX.reads_num_added_annotated.gtf -o combined && \
@@ -198,7 +199,7 @@ if [ ! -e nifflr.count.success ];then
 fi
 
 if [ -e nifflr.count.success ];then
-  log "Assembled transcripts and quantifications are in $OUTPUT_PREFIX.asm.reads.assigned.gff"
+  log "Assembled transcripts and quantifications are in $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff"
 fi
 
 

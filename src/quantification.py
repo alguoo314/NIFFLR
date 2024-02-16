@@ -175,7 +175,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
          return ref_line_fields,ref_line,transcript_len
 
     exon_num=0
-    while (ref_line_fields[2] != "transcript" and ref_line_fields[2] != "mRNA") or int(ref_line_fields[4]) < coord_starts or chr_num_conversion(ref_line_fields[0]) < chr_num_conversion(chr_name):
+    while ref_line != "" and ((ref_line_fields[2] != "transcript" and ref_line_fields[2] != "mRNA") or int(ref_line_fields[4]) < coord_starts or chr_num_conversion(ref_line_fields[0]) < chr_num_conversion(chr_name)):
         if ref_line_fields[2] != "transcript" and ref_line_fields[2] != "mRNA":
             if transcript_id != None:
                 pre_output_text[transcript_id].append(ref_line)
@@ -189,6 +189,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             pre_output_text[transcript_id]=[ref_line]
             
         ref_line = ref_file.readline()
+        
         if ref_line != "":
             ref_line_fields = ref_line.split('\t')
         else:
@@ -196,7 +197,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
         #linear scan
     if exon_num > 0:
         intron_match_record[transcript_id] = [0,exon_num-1]
-    while int(ref_line_fields[3]) <  first_exon_end and ref_line_fields[0] == chr_name:
+    while ref_line != "" and int(ref_line_fields[3]) <  first_exon_end and ref_line_fields[0] == chr_name:
         if ref_line_fields[2] == "transcript" or ref_line_fields[2] == "mRNA":
             field_8 = ref_line_fields[8]
             transcript_id = field_8.split(";")[0]
@@ -205,7 +206,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             elif cov_info== True and "cov=" not in field_8:
                 coverage = 1.0
                 cov_info = False
-                #sys.stderr.write("Transcript Coverage is not listed as 'cov=' in the attribute column of the GFF file. Assuming equal coverage for all transcripts.\n")
+                sys.stderr.write("Transcript Coverage is not listed as 'cov=' in the attribute column of the GFF file. Assuming equal coverage for all transcripts.\n")
             else:
                 coverage = float((field_8.split("cov=")[1]).split(";")[0])
             coverage_record[transcript_id] = coverage
@@ -225,7 +226,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             if ref_line !="":
                 ref_line_fields = ref_line.split('\t')
             else:
-                 break
+                break
         
         #now we have reached a new transcript
             
@@ -235,11 +236,8 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             ref_exon_chain_record = {}
             
         ref_exon_chain_record[transcript_id] = ref_exon_chain
-        
         intron_match_record[transcript_id] = [0,exon_num-1]
-   
     return ref_line_fields,ref_line,transcript_len
-
  
 
 def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,transcript_len,end_pos,num_junc): #end_pos is the position of the 3' end of the transcript

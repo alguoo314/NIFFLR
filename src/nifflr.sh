@@ -191,10 +191,7 @@ if [ ! -e nifflr.count.success ];then
   awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.combined.gff > chr_names.txt && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt && \
   rm $OUTPUT_PREFIX.sorted.combined.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt && \
-  perl -F'\t' -ane 'BEGIN{$flag=0;}{if($F[2] eq "transcript"){$count=0;@f=split(/;/,$F[8]);for($i=0;$i<=$#f;$i++){if($f[$i] =~ /^read_num=/){@ff=split(/=/,$f[$i]);$count=$ff[1]}}}print if($count>5)}' $OUTPUT_PREFIX.asm.reads.assigned.gff > $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff    
-  #gffcompare -T --no-merge -r $INPUT_GTF <(gffread -T $OUTPUT_PREFIX.good_output.gtf) -o $OUTPUT_PREFIX 1>/dev/null 2>&1 && \
-  #python $MYPATH/add_read_counts.py -a $OUTPUT_PREFIX.annotated.gtf -u $OUTPUT_PREFIX.good_output.gtf -o $OUTPUT_PREFIX.reads_num_added_annotated.gtf && \
-  #gffcompare -STC $OUTPUT_PREFIX.reads_num_added_annotated.gtf -o combined && \
+  filter_by_threshold.pl 0.05 < output.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
   touch nifflr.count.success || error_exit "Assembled transcripts quantification failed"
 fi
 

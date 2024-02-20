@@ -33,7 +33,7 @@ for($i=0;$i<$#count;$i++){
     $i=$#count;
   }
 }
-print "min count = $min_count\n";
+print "#gff\n#produced by NIFFLR\n#min read count = $min_count\n";
 for($j=0;$j<=$#lines;$j++){
   print $lines[$j],"\n" if($linecount[$j]>$min_count);
 }

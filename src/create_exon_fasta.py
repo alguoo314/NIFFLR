@@ -1,4 +1,5 @@
 import csv
+import sys
 import math
 from os.path import exists
 import random
@@ -36,7 +37,7 @@ def extract_exon_seq(seq_dict,gff_file,output_file):
         for row in reader:
             if len(row) != 9:
                 continue
-            if "transcript" in row[2] or "mRNA" in row[2]:
+            if ("transcript" in row[2] and "transcriptional" not in row[2]) or "mRNA" in row[2]:
                 if "gene=" in row[8]:
                     gene_name = row[8].split(sep="gene=")[1].split(sep=";")[0]
                 elif "gene_name" in row[8]:
@@ -44,7 +45,8 @@ def extract_exon_seq(seq_dict,gff_file,output_file):
                 elif "geneID" in row[8]:
                     gene_name = row[8].split(sep="geneID=")[1].split(sep=";")[0]
                 else:
-                    print("INVALID GFF FORMAT?")
+                    sys.stderr.write("INVALID GFF FORMAT? It is recommended to clean up your GFF file so that the third field is transcript,mRNA,or exon.")
+                    sys.stderr.write(row)
                     return
 
             if "exon" in row[2]: 
@@ -94,7 +96,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-r","--reads")
     parser.add_argument("-g","--gff")
-    parser.add_argument("-o","--out")
+    parser.add_argument("-o","--out",default="output.exons.fna")
     args = parser.parse_args()
     seq_dict=parse_fasta(args.reads)
     extract_exon_seq(seq_dict,args.gff,args.out)

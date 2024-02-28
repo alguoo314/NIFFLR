@@ -53,7 +53,8 @@ def extract_exon_seq(seq_dict,gff_file,gtf_file,output_file):
                         sys.stderr.write("INVALID GFF FORMAT? It is recommended to clean up your GFF file so that the third field is transcript,mRNA,or exon, and the ninth field of transcript or mRNA entries contain the gene info (in format of gene, gene_name or geneID).")
                         sys.stderr.write(row)
                         return
-
+                    prev_gene_name=gene_name
+                    
                 if "exon" in row[2]: 
                     seq_name =  row[0]
                     if seq_name not in seq_dict.keys():
@@ -70,7 +71,8 @@ def extract_exon_seq(seq_dict,gff_file,gtf_file,output_file):
                         gene_name = row[8].split(sep="geneID=")[1].split(sep=";")[0]
                     elif "gene_id" in row[8]:
                         gene_name = row[8].split(sep="gene_id=")[1].split(sep=";")[0]
-                    
+                    if gene_name != prev_gene_name: #this exon is not from an annotated mrna or transcript
+                        continue
                     exon_seq = full_seq[start-1:end]
                     orientation='F'
                     if (direction=='-'):
@@ -98,6 +100,7 @@ def extract_exon_seq(seq_dict,gff_file,gtf_file,output_file):
                         sys.stderr.write(row)
                         return
                     gene_name =	gene_name.replace("\"","")
+                    prev_gene_name =  gene_name
                     
                 if "exon" in row[2]: 
                     seq_name =  row[0]
@@ -116,7 +119,8 @@ def extract_exon_seq(seq_dict,gff_file,gtf_file,output_file):
                     elif "gene_id" in row[8]:
                         gene_name = row[8].split(sep="gene_id ")[1].split(sep=";")[0]
                     gene_name =	gene_name.replace("\"","")
-                    
+                    if gene_name != prev_gene_name: #this exon is not from an annotated mrna or transcript                     
+                        continue
                     exon_seq = full_seq[start-1:end]
                     orientation='F'
                     if (direction=='-'):

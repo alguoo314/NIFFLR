@@ -5,6 +5,7 @@ while($line=<STDIN>){
   push(@lines,$line);
 }
 my $current_count;
+my $current_support;
 for($j=0;$j<=$#lines;$j++){
   @F=split(/\t/,$lines[$j]);
   if($F[2] eq "transcript"){
@@ -14,10 +15,14 @@ for($j=0;$j<=$#lines;$j++){
         @ff=split(/=/,$f[$i]);
         $count[int($ff[1])]++;
         $current_count=$ff[1];
+      }elsif($f[$i] =~ /^transcript_support=/){
+        @ff=split(/=/,$f[$i]);
+        $current_support=$ff[1];
       }
     }
   }
   $linecount[$j]=$current_count;
+  $linesupport[$j]=$current_support;
 }
 $thresh=0;
 for($i=0;$i<$#count;$i++){
@@ -35,5 +40,5 @@ for($i=0;$i<$#count;$i++){
 }
 print "#gff\n#produced by NIFFLR\n#min read count = $min_count\n";
 for($j=0;$j<=$#lines;$j++){
-  print $lines[$j],"\n" if($linecount[$j]>$min_count);
+  print $lines[$j],"\n" if($linecount[$j] > $min_count || $linesupport[$j] > 0.9);
 }

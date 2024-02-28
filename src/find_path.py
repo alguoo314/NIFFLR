@@ -32,7 +32,7 @@ def main():
             if exons != []:
                 #if only one exon
                 if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (exons[0][4] >=  exons[-1][4]) or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0 or exons[0][2] == exons[-1][2] or exons[0][3] >=  exons[-1][3]:
-                    exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
+                    exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
                     #just output the longest mapping with min overhang penalty as possible
                     score_recorder.append(0)
                     exons[0][1]=exons[0][1].split("_rePlicate")[0]
@@ -65,7 +65,7 @@ def main():
                 exon_name = exon_info[1]
                 exon_set.add(exon_info[1])
                 same_exons_record[exon_info[1]]=[exon_name]
-            start = int(exon_info[4])
+            start = int(exon_info[4]) #start of exon (overhang included)
             end = int(exon_info[5])
             #if start > 0:
                 #overhang = int(exon_info[2])-start+end-int(exon_info[3])
@@ -79,7 +79,7 @@ def main():
      #final
     
     if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (int(exons[0][4]) >=  int(exons[-1][4])) or int(exons[0][5]) >=  int(exons[-1][5]) or int(exons[-1][4]) < 0 or int(exons[0][2]) == int(exons[-1][2]) or int(exons[0][3]) >=  int(exons[-1][3]):
-        exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
+        exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
         #just output the longest mapping with min overhang penalty as possible
         with open(outp,'a') as of:
             of.write("".join(to_be_written))

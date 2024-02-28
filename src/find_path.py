@@ -67,10 +67,11 @@ def main():
                 same_exons_record[exon_info[1]]=[exon_name]
             start = int(exon_info[4])
             end = int(exon_info[5])
-            if start > 0:
-                overhang = int(exon_info[2])-start+end-int(exon_info[3])
-            else: # do not penalize the overhang that goes before the start of the read
-                overhang = end-int(exon_info[3])
+            #if start > 0:
+                #overhang = int(exon_info[2])-start+end-int(exon_info[3])
+            #else: # do not penalize the overhang that goes before the start of the read
+                #overhang = end-int(exon_info[3])
+            overhang = int(exon_info[2])-start+end-int(exon_info[3]) #feb 2024 edit: now we penalize start/end overhangs
             overhangs_penalty = max(0,(overhang-2)*0.1)
             exons.append([exon_info[0],exon_name,int(exon_info[2]),int(exon_info[3]),start,end,int(exon_info[6]),float(overhangs_penalty)])
             exon_index_record[exon_name] = exon_info
@@ -113,7 +114,6 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
     g = Graph(exon_names_list)
     edges_candidates = []
     unconnected_nodes = set()
-    #path_len_dict ={} #negative for overlaps
     for i in range(len(exons)):
         node_1_info = exons[i]
         node_1_name =  node_1_info[1]
@@ -354,7 +354,7 @@ class Graph:
                         dist[node] = dist[i] + weight[1]
                         dist_overhang_penalized[node] = dist_overhang_penalized[i] + weight[1] + overhang_pen_dict[node]
                         prevs[node]=i
-        # Print the calculated shortest distances
+        
         final_dist = dist[s2]
         final_dist_overhang_penalized = dist_overhang_penalized[s2]
         path = []

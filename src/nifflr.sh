@@ -147,7 +147,7 @@ fi
 if [ ! -e nifflr.exons_extraction.success ];then
   log "Extracting exons from the GFF file and putting them into a fasta file" && \
   log "All exons are listed as in the positive strand" && \
-  python $MYPATH/create_exon_fasta.py -r $REF -g <(gffread -F $INPUT_GTF) -o $OUTPUT_PREFIX.exons.fna  && \
+  python $MYPATH/create_exon_fasta.py -r $REF --gtf $INPUT_GTF -o $OUTPUT_PREFIX.exons.fna  && \
   rm -f nifflr.alignment.success && \
   touch nifflr.exons_extraction.success || error_exit "exon extraction failed"
 fi

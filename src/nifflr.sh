@@ -145,7 +145,7 @@ error_exit "The input reads file does not exist. Please supply a valid fasta fil
 fi
 
 if [ ! -e nifflr.exons_extraction.success ];then
-  log "Extracting exons from the GFF file and putting them into a fasta file" && \
+  log "Extracting exons from the transcripts" && \
   log "All exons are listed as in the positive strand" && \
   python $MYPATH/create_exon_fasta.py -r $REF --gtf $INPUT_GTF -o $OUTPUT_PREFIX.exons.fna  && \
   rm -f nifflr.alignment.success && \
@@ -165,7 +165,9 @@ fi
 
 if [ ! -e nifflr.gtf_generation.success ];then
   log "Generating the gtf file which converts the paths of exons to transcripts" && \
-  python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf  && \
+  ufasta extract -f <(perl -ane '{if($F[0] =~ /^>/){$rn=substr($F[0],1);$h{$rn}=1;$last_end=""}else{if(not($last_end eq "")){$h{$rn}=0 if(abs($last_end-$F[4])>10);} $last_end=$F[5];}}END{foreach $k(keys %h){print "$k\n" if($h{$k});}}' $OUTPUT_PREFIX.best_paths.fasta ) $OUTPUT_PREFIX.best_paths.fasta > $OUTPUT_PREFIX.best_paths.filter.fasta.tmp && \
+  mv $OUTPUT_PREFIX.best_paths.filter.fasta.tmp $OUTPUT_PREFIX.best_paths.filter.fasta && \
+  python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.filter.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf  && \
   rm -f nifflr.count.success  && \
   touch nifflr.gtf_generation.success || error_exit "GTF generation failed"
 fi
@@ -182,7 +184,7 @@ if [ "$QUANT" = true ] && [ ! -e nifflr.quantification.success ];then
 fi
 
 if [ ! -e nifflr.count.success ];then
-  log "Performing quantification of assembled transcripts" && \
+  log "Performing quantification and filtering of assembled transcripts" && \
   gffcompare -STC $OUTPUT_PREFIX.good_output.gtf -o $OUTPUT_PREFIX 1>gffcmp.out 2>&1 && \
   sort -S 10% -k1,1 -Vs $OUTPUT_PREFIX.combined.gtf | gffread -F > $OUTPUT_PREFIX.sorted.combined.gff && \
   sort -S 10% -k1,1 -Vs $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \

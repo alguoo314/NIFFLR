@@ -161,7 +161,7 @@ fi
 if [ ! -e nifflr.alignment.success ];then
   log "Running jf_aligner to align between the reads and the reference exons, folowed by finding the best path through the exons in each read" && \
   SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}') && \
-  zcat -f $INPUT_READS | fastqToFasta.pl |jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -p /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
+  zcat -f $INPUT_READS | fastqToFasta.pl |jf_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
   $MYPATH/majority_vote.py | \
   $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \

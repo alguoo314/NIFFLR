@@ -13,6 +13,7 @@ def main():
     parser.add_argument("-i","--inp",default='best_paths.txt',help="Path to the file containing the best paths")
     parser.add_argument("-g","--good",default='good_output.gtf',help="Path to the output gtf file containing transcripts with penalty score <= 5")
     parser.add_argument("-b","--bad",default='bad_output.gtf',help="Path to the output gtf file containing transcripts with penalty score > 5")
+    parser.add_argument("-e","--exon_gap_overlap_allowance",default=15,help="Threshold for allowed gaps or overlaps between two exons in a transcript for the transcript to not be classified as a bad transcript. Default is 15.")
     args = parser.parse_args()
     inputfile = open(args.inp,'r')
     Lines = inputfile.readlines()
@@ -21,6 +22,7 @@ def main():
     outputgoodfile.close()
     outputbadfile = open(args.bad,'w')
     outputbadfile.close()
+    exon_gap_overlap_allowance = args.exon_gap_overlap_allowance
     
     first_line = False
     score = None
@@ -50,7 +52,7 @@ def main():
             read_name = read_info[0][1:]
             score = float(read_info[1])
             
-            if score > 5 or score==-1:
+            if score > 5 or score==-1 or int(read_info[2]) > exon_gap_overlap_allowance
                 bad_entries = True
                 list_of_bad_entries = [read_name,score]
             else:

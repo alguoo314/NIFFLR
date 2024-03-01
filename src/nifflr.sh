@@ -9,8 +9,8 @@ OUTPUT_PREFIX="output"
 DISCARD_INTERM=false
 QUANT=false
 JF_THREADS=16
-BASES=17.0
-MER=15
+BASES=40
+MER=12
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -165,7 +165,7 @@ fi
 
 if [ ! -e nifflr.gtf_generation.success ];then
   log "Generating the gtf file which converts the paths of exons to transcripts" && \
-  ufasta extract -f <(perl -ane '{if($F[0] =~ /^>/){$rn=substr($F[0],1);$h{$rn}=1;$last_end=""}else{if(not($last_end eq "")){$h{$rn}=0 if(abs($last_end-$F[4])>10);} $last_end=$F[5];}}END{foreach $k(keys %h){print "$k\n" if($h{$k});}}' $OUTPUT_PREFIX.best_paths.fasta ) $OUTPUT_PREFIX.best_paths.fasta > $OUTPUT_PREFIX.best_paths.filter.fasta.tmp && \
+  ufasta extract -f <(perl -ane '{if($F[0] =~ /^>/){$rn=substr($F[0],1);$h{$rn}=1;$last_end=""}else{if(not($last_end eq "")){$h{$rn}=0 if(abs($last_end-$F[4])>15);} $last_end=$F[5];}}END{foreach $k(keys %h){print "$k\n" if($h{$k});}}' $OUTPUT_PREFIX.best_paths.fasta ) $OUTPUT_PREFIX.best_paths.fasta > $OUTPUT_PREFIX.best_paths.filter.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.filter.fasta.tmp $OUTPUT_PREFIX.best_paths.filter.fasta && \
   python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.filter.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf  && \
   rm -f nifflr.count.success  && \
@@ -191,7 +191,7 @@ if [ ! -e nifflr.count.success ];then
   awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.combined.gff > chr_names.txt && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt && \
   rm $OUTPUT_PREFIX.sorted.combined.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt && \
-  filter_by_threshold.pl 0.01 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
+  filter_by_threshold.pl 0.02 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
   touch nifflr.count.success || error_exit "Assembled transcripts quantification failed"
 fi
 

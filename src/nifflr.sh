@@ -11,6 +11,7 @@ QUANT=false
 JF_THREADS=16
 BASES=40
 MER=12
+GAP_OVERLAP_ALLOWANCE=15
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -48,6 +49,7 @@ function usage {
     echo "-p, --prefix string     Prefix of the output files (output)"
     echo "-q, --quantification    If supplied, NIFFLR will assign the reads back to the reference transcripts based on coverages (False)"
     echo "-t, --threads uint16    Number of threads (16)"
+    echo "-e, --allowed_exon_gap_or_overlap uint16   Threshold for the allowed bases of gaps or overlaps between two adjacent exons in mapped reads for building a valid  transcript (15)"
     echo "-h, --help              This message"
     echo "-v, --verbose           Verbose mode (False)"
 }
@@ -60,6 +62,10 @@ do
         -g|--gtf)
             export INPUT_GTF="$2"
             shift
+            ;;
+	-e|--allowed_exon_gap_or_overlap)
+	    export GAP_OVERLAP_ALLOWANCE="$2"
+	    shift
             ;;
         -f|--fasta)
             export INPUT_READS="$2"
@@ -165,9 +171,7 @@ fi
 
 if [ ! -e nifflr.gtf_generation.success ];then
   log "Generating the gtf file which converts the paths of exons to transcripts" && \
-  ufasta extract -f <(perl -ane '{if($F[0] =~ /^>/){$rn=substr($F[0],1);$h{$rn}=1;$last_end=""}else{if(not($last_end eq "")){$h{$rn}=0 if(abs($last_end-$F[4])>15);} $last_end=$F[5];}}END{foreach $k(keys %h){print "$k\n" if($h{$k});}}' $OUTPUT_PREFIX.best_paths.fasta ) $OUTPUT_PREFIX.best_paths.fasta > $OUTPUT_PREFIX.best_paths.filter.fasta.tmp && \
-  mv $OUTPUT_PREFIX.best_paths.filter.fasta.tmp $OUTPUT_PREFIX.best_paths.filter.fasta && \
-  python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.filter.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf  && \
+  python $MYPATH/generate_gtf.py -e $GAP_OVERLAP_ALLOWANCE -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf -b  $OUTPUT_PREFIX.bad_output.gtf  && \
   rm -f nifflr.count.success  && \
   touch nifflr.gtf_generation.success || error_exit "GTF generation failed"
 fi

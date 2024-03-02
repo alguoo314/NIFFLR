@@ -36,7 +36,7 @@ def main():
                     #just output the longest mapping with min overhang penalty as possible
                     score_recorder.append(0)
                     exons[0][1]=exons[0][1].split("_rePlicate")[0]
-                    to_be_written.append(str(read_name+'\t'+str(0)+'\n'))
+                    to_be_written.append(str(read_name+'\t'+str(0)+'\t'+str(0)+'\n'))
                     to_be_written.append('\t'.join(map(str,exons[0][:-1]))+'\n')
                     read_counter +=1 
                     
@@ -85,7 +85,7 @@ def main():
             of.write("".join(to_be_written))
             score_recorder.append(0)
             exons[0][1]=exons[0][1].split("_rePlicate")[0]
-            of.write(read_name+'\t'+str(0)+'\n')
+            of.write(read_name+'\t'+str(0)+'\t'+str(0)+'\n')
             of.write('\t'.join(map(str,exons[0][:-1]))+'\n')             
     else:
         chr_and_gene_name = '-'.join(exons[0][1].split('-')[:-2])

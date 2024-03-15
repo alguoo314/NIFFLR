@@ -10,12 +10,14 @@ ow gap penalty")
     parser.add_argument("-o","--outp",default="read_count_added_reference.gff",help="Path to the output GFF file with the number of reads added to the referenc\
 e transcripts")
     parser.add_argument("-c","--chr_names",default="chr_names.txt",help="A file containing the chromosome names, aka the first field of the reference gff file")
+    parser.add_argument("-j","--junction_coverage",default="exon_junction_counts.txt",help="A file containing the read counts of each exon junction")
     args = parser.parse_args()
     global ref_file
     global assembled_file
     global pre_output_text
     global chr_names_orders
     global cov_info
+    global exon_junction_counts
     cov_info = True
     chr_names_orders = {}
     with open(args.chr_names, "r") as chrfile:
@@ -24,7 +26,12 @@ e transcripts")
             chrom = line.strip()
             chr_names_orders[chrom]=i
             i+=1
-
+    exon_junction_counts = {}
+    with open(args.junction_coverage, 'r') as f:
+        csv_reader = csv.reader(f)
+        next(csv_reader, None)
+        for row in csv_reader:
+            exon_junction_counts[row[0]] = row[1]
     ref_file = open(args.ref,'r')
     assembled_file = open(args.assembled,'r')
     output_file = open(args.outp,'w')
@@ -83,7 +90,7 @@ e transcripts")
             while it < 1900:
                 k,v =pre_output_text.popitem(last=False)
                 intron_matched_frac=intron_match_record.pop(k,[0,0])
-                output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[0],intron_matched_frac[1]))
+                output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[0],intron_matched_frac[1]))
                 output_file.write(''.join(v[1:]))
                 it +=1
                 
@@ -106,7 +113,7 @@ e transcripts")
             if line.split('\t')[2] == "transcript":
                 if exon_num > 0 and len(last_buffer)>0:
                     output_file.write(last_buffer[0]+str(exon_num-1)+'\n'+last_buffer[1])
-                last_buffer = [line+";read_num=0;transcript_support=0;covered_junctions=0/",'']
+                last_buffer = [line+";read_num=0;transcript_support=0;least_junction_reads_coverage=0;covered_junctions=0/",'']
                 exon_num = 0
             else:
                 if len(last_buffer)>0:
@@ -158,6 +165,7 @@ def process_assembled_transcript(assembled_line_fields):
         single_exon = True
 
     num_junc=exon_nums-1
+    print("assembled_exon_chain",assembled_exon_chain)
     return chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line,single_exon,max_read_len,num_junc
 
 
@@ -236,6 +244,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             ref_exon_chain_record = {}
             
         ref_exon_chain_record[transcript_id] = ref_exon_chain
+        print("ref exon chain",transcript_id,ref_exon_chain)
         intron_match_record[transcript_id] = [0,exon_num-1]
     return ref_line_fields,ref_line,transcript_len
  

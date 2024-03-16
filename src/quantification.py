@@ -1,5 +1,6 @@
 import argparse
 import sys
+import csv
 from collections import OrderedDict
 
 def main():
@@ -28,10 +29,10 @@ e transcripts")
             i+=1
     exon_junction_counts = {}
     with open(args.junction_coverage, 'r') as f:
-        csv_reader = csv.reader(f)
+        csv_reader = csv.reader(f,delimiter='\t')
         next(csv_reader, None)
         for row in csv_reader:
-            exon_junction_counts[row[0]] = row[1]
+            exon_junction_counts[row[0]] = int(row[1])
     ref_file = open(args.ref,'r')
     assembled_file = open(args.assembled,'r')
     output_file = open(args.outp,'w')
@@ -90,6 +91,8 @@ e transcripts")
             while it < 1900:
                 k,v =pre_output_text.popitem(last=False)
                 intron_matched_frac=intron_match_record.pop(k,[0,0])
+                if intron_matched_frac[2]==10**10:
+                    intron_matched_frac[2]=-1
                 output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[0],intron_matched_frac[1]))
                 output_file.write(''.join(v[1:]))
                 it +=1
@@ -101,7 +104,9 @@ e transcripts")
     if first_transcript == False:
         for k,v in pre_output_text.items():
             intron_matched_frac=intron_match_record.pop(k,[0,0])
-            output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[0],intron_matched_frac[1]))
+            if intron_matched_frac[2]==10**10:
+                intron_matched_frac[2]=-1
+            output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[0],intron_matched_frac[1]))
             output_file.write(''.join(v[1:]))
 
         #if there are any ref transcripts remaining with no reads
@@ -195,7 +200,8 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
                 exon_num = 0
             transcript_id = ref_line_fields[8].split(";")[0]
             pre_output_text[transcript_id]=[ref_line]
-            
+
+        prev_ref_line=ref_line    
         ref_line = ref_file.readline()
         
         if ref_line != "":
@@ -204,7 +210,8 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             return ref_line_fields,ref_line,transcript_len
         #linear scan
     if exon_num > 0:
-        intron_match_record[transcript_id] = [0,exon_num-1]
+        min_junction_coverage = get_exon_junction_coverage(ref_exon_chain,ref_line_fields[0],ref_line_fields[6])
+        intron_match_record[transcript_id] = [0,exon_num-1,min_junction_coverage]
     while ref_line != "" and int(ref_line_fields[3]) <  first_exon_end and ref_line_fields[0] == chr_name:
         if ref_line_fields[2] == "transcript" or ref_line_fields[2] == "mRNA":
             field_8 = ref_line_fields[8]
@@ -220,6 +227,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             coverage_record[transcript_id] = coverage
             transcript_len = 0
             pre_output_text[transcript_id]=[ref_line.strip('\n')]
+            prev_ref_line=ref_line
             ref_line = ref_file.readline()
             ref_line_fields = ref_line.split('\t')
             ref_exon_chain = ""
@@ -230,6 +238,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             pre_output_text[transcript_id].append(ref_line)
             transcript_len += int(ref_line_fields[4])-int(ref_line_fields[3])+1
             ref_exon_chain+=str(ref_line_fields[3])+"-"+str(ref_line_fields[4])+"-"
+            prev_ref_line=ref_line
             ref_line = ref_file.readline()
             if ref_line !="":
                 ref_line_fields = ref_line.split('\t')
@@ -239,15 +248,31 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
         #now we have reached a new transcript
             
         if len(ref_exon_chain_record) >0 and int(ref_exon_chain_record[next(reversed(ref_exon_chain_record))].split("-")[-2]) < int(ref_exon_chain.split("-")[0]):
-            #reduce the total size of ref_exon_chain_record
-            #is this too time consuming?
             ref_exon_chain_record = {}
             
         ref_exon_chain_record[transcript_id] = ref_exon_chain
         print("ref exon chain",transcript_id,ref_exon_chain)
-        intron_match_record[transcript_id] = [0,exon_num-1]
+        prev_ref_line_fields = prev_ref_line.split('\t')
+        min_junction_coverage = get_exon_junction_coverage(ref_exon_chain,prev_ref_line_fields[0],prev_ref_line_fields[6])
+        intron_match_record[transcript_id] = [0,exon_num-1,min_junction_coverage]
     return ref_line_fields,ref_line,transcript_len
- 
+
+def get_exon_junction_coverage(ref_exon_chain,chrom,ori):
+    segs = ref_exon_chain.split('-')
+    if len(segs)==2:
+        return 0
+    junctions=[]
+    for s in range(1,len(segs)-2,2):
+        junctions.append(segs[s]+','+segs[s+1])
+    #print(chrom,ref_exon_chain,junctions)
+    min_junction_coverage=10**10
+    for j in junctions:
+        key = chrom+ori+j
+        #print(key)
+        if key in exon_junction_counts:
+            #print('there')
+            min_junction_coverage=min(min_junction_coverage,exon_junction_counts[key])
+    return min_junction_coverage
 
 def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,transcript_len,end_pos,num_junc): #end_pos is the position of the 3' end of the transcript
     global transcript_reads_record

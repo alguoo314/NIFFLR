@@ -170,7 +170,7 @@ def process_assembled_transcript(assembled_line_fields):
         single_exon = True
 
     num_junc=exon_nums-1
-    print("assembled_exon_chain",assembled_exon_chain)
+    #print("assembled_exon_chain",assembled_exon_chain)
     return chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line,single_exon,max_read_len,num_junc
 
 
@@ -251,7 +251,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             ref_exon_chain_record = {}
             
         ref_exon_chain_record[transcript_id] = ref_exon_chain
-        print("ref exon chain",transcript_id,ref_exon_chain)
+        #print("ref exon chain",transcript_id,ref_exon_chain)
         prev_ref_line_fields = prev_ref_line.split('\t')
         min_junction_coverage = get_exon_junction_coverage(ref_exon_chain,prev_ref_line_fields[0],prev_ref_line_fields[6])
         intron_match_record[transcript_id] = [0,exon_num-1,min_junction_coverage]

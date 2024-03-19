@@ -5,6 +5,8 @@ threshold = float(sys.argv[1])
 count = {}
 linecount = {}
 linesupport = {}
+linecov = {} 
+min_junc_count=2
 lines = []
 
 for line in sys.stdin:
@@ -21,6 +23,8 @@ for j in range(len(lines)):
                 linecount[j] = int(item.split("=")[1])
             elif item.startswith("transcript_support="):
                 linesupport[j] = float(item.split("=")[1])
+            elif item.startswith("least_junction_reads_coverage="):
+                linecov[j]=float(item.split("=")[1])
 
 thresh = sum(i * count[i] for i in count) * threshold
 min_count = 0
@@ -36,4 +40,5 @@ print("#gff\n#produced by NIFFLR\n#min read count =", min_count)
 
 for j in range(len(lines)):
     if linecount.get(j, 0) > min_count or linesupport.get(j, 0) > 0.85:
-        print(lines[j])
+        if linecov.get(j, 0) >= min_junc_count: 
+            print(lines[j])

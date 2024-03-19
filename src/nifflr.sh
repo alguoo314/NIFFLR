@@ -11,7 +11,7 @@ QUANT=false
 JF_THREADS=16
 BASES=40
 MER=12
-GAP_OVERLAP_ALLOWANCE=15
+GAP_OVERLAP_ALLOWANCE=12
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -197,7 +197,7 @@ if [ ! -e nifflr.count.success ];then
   python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.good_output.gff -o $OUTPUT_PREFIX.exon_junction_counts.csv && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt -j $OUTPUT_PREFIX.exon_junction_counts.csv && \
   rm $OUTPUT_PREFIX.sorted.combined.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt $OUTPUT_PREFIX.exon_junction_counts.csv && \
-  filter_by_threshold.pl 0.02 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
+  filter_by_threshold.pl 0.001 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
   touch nifflr.count.success || error_exit "Assembled transcripts quantification failed"
 fi
 

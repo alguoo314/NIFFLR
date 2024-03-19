@@ -18,9 +18,13 @@ for($j=0;$j<=$#lines;$j++){
       }elsif($f[$i] =~ /^transcript_support=/){
         @ff=split(/=/,$f[$i]);
         $current_support=$ff[1];
+      }elsif($f[$i] =~ /^least_junction_reads_coverage=/){
+        @ff=split(/=/,$f[$i]);
+        $minjcov=$ff[1];
       }
     }
   }
+  $lineminjcov[$j]=$minjcov;
   $linecount[$j]=$current_count;
   $linesupport[$j]=$current_support;
 }
@@ -40,5 +44,5 @@ for($i=0;$i<$#count;$i++){
 }
 print "#gff\n#produced by NIFFLR\n#min read count = $min_count\n";
 for($j=0;$j<=$#lines;$j++){
-  print $lines[$j],"\n" if($linecount[$j] > $min_count || $linesupport[$j] > 0.9);
+  print $lines[$j],"\n" if(($linecount[$j] > $min_count || $linesupport[$j] > 0.85) && $lineminjcov[$j] > 1);
 }

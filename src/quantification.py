@@ -92,7 +92,7 @@ e transcripts")
                 k,v =pre_output_text.popitem(last=False)
                 intron_matched_frac=intron_match_record.pop(k,[0,0])
                 if intron_matched_frac[2]==10**10:
-                    intron_matched_frac[2]=-1
+                    intron_matched_frac[2]=round(transcript_reads_record.pop(k,0),3)
                 output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[0],intron_matched_frac[1]))
                 output_file.write(''.join(v[1:]))
                 it +=1
@@ -105,7 +105,7 @@ e transcripts")
         for k,v in pre_output_text.items():
             intron_matched_frac=intron_match_record.pop(k,[0,0])
             if intron_matched_frac[2]==10**10:
-                intron_matched_frac[2]=-1
+                intron_matched_frac[2]=round(transcript_reads_record.pop(k,0),3)
             output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[0],intron_matched_frac[1]))
             output_file.write(''.join(v[1:]))
 

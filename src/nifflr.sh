@@ -11,7 +11,7 @@ QUANT=false
 JF_THREADS=16
 BASES=40
 MER=12
-GAP_OVERLAP_ALLOWANCE=12
+GAP_OVERLAP_ALLOWANCE=15
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'

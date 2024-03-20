@@ -181,9 +181,9 @@ if [ "$QUANT" = true ] && [ ! -e nifflr.quantification.success ];then
   sort -S 10% -k1,1 -Vs $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
   sort -S 10% -k1,1 -Vs $INPUT_GTF | awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
   awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.ref.gff > chr_names.txt && \
-  python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.good_output.gff -o $OUTPUT_PREFIX.exon_junction_counts.csv && \
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o $OUTPUT_PREFIX.ref.reads.assigned.gff -c chr_names.txt -j $OUTPUT_PREFIX.exon_junction_counts.csv && \
-  rm $OUTPUT_PREFIX.sorted.ref.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt $OUTPUT_PREFIX.exon_junction_counts.csv && \
+  python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.good_output.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o $OUTPUT_PREFIX.ref.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
+  rm $OUTPUT_PREFIX.sorted.ref.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt $OUTPUT_PREFIX.exon_junction_counts.csv $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   log "Reference transcripts quantified in $OUTPUT_PREFIX.ref.reads.assigned.gff" && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"    
 fi
@@ -194,9 +194,9 @@ if [ ! -e nifflr.count.success ];then
   sort -S 10% -k1,1 -Vs $OUTPUT_PREFIX.combined.gtf | gffread -F > $OUTPUT_PREFIX.sorted.combined.gff && \
   sort -S 10% -k1,1 -Vs $OUTPUT_PREFIX.good_output.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
   awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.combined.gff > chr_names.txt && \
-  python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.good_output.gff -o $OUTPUT_PREFIX.exon_junction_counts.csv && \
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt -j $OUTPUT_PREFIX.exon_junction_counts.csv && \
-  rm $OUTPUT_PREFIX.sorted.combined.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt $OUTPUT_PREFIX.exon_junction_counts.csv && \
+  python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.good_output.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
+  rm $OUTPUT_PREFIX.sorted.combined.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt $OUTPUT_PREFIX.exon_junction_counts.csv $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   filter_by_threshold.pl 0.001 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
   touch nifflr.count.success || error_exit "Assembled transcripts quantification failed"
 fi

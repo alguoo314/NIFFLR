@@ -168,7 +168,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
     destination_candidate_nodes = set()
     destination_candidate_nodes.add(destination[1])
     for ex in range(1,len(exons)):
-        if int(exons[ex][4]) <= 0 or int(exons[ex][4]) <= int(exons[0][4]) or int(exons[ex][2]) <= int(exons[0][2]): 
+        if int(exons[ex][4]) <= 0 or int(exons[ex][4]) <= int(exons[0][4]) or int(exons[ex][2]) <= int(exons[0][2]) or int(exons[ex][3]) <= int(exons[0][3]) or int(exons[ex][5]) <= int(exons[0][5]) : 
             name = exons[ex][1]
             if name not in unconnected_nodes:
                 origin_candidate_nodes.add(exons[ex][1])

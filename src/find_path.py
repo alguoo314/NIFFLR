@@ -22,6 +22,7 @@ def main():
     score_recorder = []
     to_be_written = []
     read_counter = 0
+    
     for l in sys.stdin:
         if l[0]=='>':
             if read_counter == 1000: #write 1000 reads to file

@@ -9,8 +9,8 @@ OUTPUT_PREFIX="output"
 DISCARD_INTERM=false
 QUANT=false
 JF_THREADS=16
-BASES=40
-MER=12
+BASES=50
+MER=11
 GAP_OVERLAP_ALLOWANCE=15
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
@@ -162,6 +162,7 @@ if [ ! -e nifflr.alignment.success ];then
   log "Running jf_aligner to align between the reads and the reference exons, folowed by finding the best path through the exons in each read" && \
   SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}') && \
   zcat -f $INPUT_READS | fastqToFasta.pl |psa_aligner -t $JF_THREADS -B $BASES -m $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
+  tee alignments.txt | \
   $MYPATH/majority_vote.py | \
   $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \

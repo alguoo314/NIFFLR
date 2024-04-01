@@ -23,15 +23,13 @@ for($j=0;$j<=$#lines;$j++){
       }elsif($f[$i] =~ /^transcript_support=/){
         @ff=split(/=/,$f[$i]);
         $current_support=$ff[1];
-      }elsif($f[$i] =~ /^least_junction_reads_coverage=/){
+      }elsif($f[$i] =~ /^full_junction_reads_coverage=/){
         @ff=split(/=/,$f[$i]);
-        $maxjcov{$geneID}=$ff[1] if($ff[1]>$maxjcov{$geneID});
-        $minjcov=$ff[1];
+        $current_full_cov=$ff[1];
       }
     }
   }
-  $linemaxjcov[$j]=$maxjcov{$geneID};
-  $lineminjcov[$j]=$minjcov;
+  $linefullcov[$j]=$current_full_cov;
   $linecount[$j]=$current_count;
   $linesupport[$j]=$current_support;
 }
@@ -51,6 +49,6 @@ for($i=0;$i<$#count;$i++){
 }
 print "#gff\n#produced by NIFFLR\n#min read count = $min_count\n";
 for($j=0;$j<=$#lines;$j++){
-  print $lines[$j],"\n" if(($linecount[$j] > $min_count || $linesupport[$j] > 0.9) && ($lineminjcov[$j]>1 ||  $linemaxjcov[$j]==1 || $lineminjcov[$j] == -1));
-  #print $lines[$j],"\n" if(($linecount[$j] > $min_count || $linesupport[$j] > 0.9));
+  #print $lines[$j],"\n" if($linecount[$j] > $min_count || $linesupport[$j] > 0.9);
+  print $lines[$j],"\n" if($linecount[$j] > $min_count || $linesupport[$j] > 0.95 || $linefullcov[$j]>3);
 }

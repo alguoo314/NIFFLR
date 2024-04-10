@@ -11,6 +11,7 @@ def main():
     lines_to_be_written=[]
     read_counter = 0
     headers= True
+    prev_end={}
     
     if True:#this is only because I did not want to readjust the indentation for the lines below
         for line in sys.stdin:
@@ -24,20 +25,22 @@ def main():
                     exon_dict = {}
                 read_name=line.split()[-1]
                 prev_read = read_name
-           
+                prev_end={}
             else: #alignments
                 info = line.split()
                 exon_name_and_pos=info[-1].split('-')
                 exon_name='-'.join(exon_name_and_pos[:-2])
                 exon_len = int(info[10])
                 exon_seg_start_index = int(exon_name_and_pos[-2])
-                            
+                
            
                 order ='+'
                 exon_start = int(info[2])
                 exon_end = int(info[3])
                 read_start = int(info[0])
                 read_end = int(info[1])
+                
+                
                 if exon_start > exon_end:
                     temp=exon_start
                     exon_start = exon_end
@@ -49,8 +52,13 @@ def main():
                     overhang_added_read_start = read_start-(exon_start-1)                                         
                     overhang_added_read_end = read_end+(exon_len-exon_end)  
 
-                matched_len = exon_end-exon_start+1
+                if exon_name+order not in prev_end:
+                    prev_end[exon_name+order]=-1
 
+                prev_read_end=prev_end[exon_name+order]
+                matched_len = max(0,read_end-max(read_start-1,prev_read_end))
+
+                prev_end[exon_name+order]=read_end
                 if exon_name+order not in weight_dict.keys():
                     weight_dict[exon_name+order] = 0
                     exon_dict[exon_name+order]=[]
@@ -66,7 +74,7 @@ def main():
     return
 
 def write_exons(lines_to_be_written,read_counter,weight_dict,exon_dict,read):
-    if bool(weight_dict):
+    if bool(weight_dict):   
         best_exon=max(weight_dict, key=weight_dict.get)
         exon_data=exon_dict[best_exon]
         order = best_exon[-1] #the mapping direction

@@ -77,7 +77,9 @@ def main():
                 overhang+=start*0.9
 
             overhangs_penalty = max(0,overhang*0.1)
-            #print(l+"Overhangs penalty:"+str(overhangs_penalty))
+            #kmers = int(exon_info[6])
+            #overhangs_penalty-= kmers
+            
             exons.append([exon_info[0],exon_name,int(exon_info[2]),int(exon_info[3]),start,end,int(exon_info[6]),float(overhangs_penalty)])
             exon_index_record[exon_name] = exon_info
             
@@ -201,11 +203,11 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             for node1 in origin_candidate_nodes:
                 for node2 in destination_candidate_nodes:
                     dist, overhang_penalized_dist,path,max_interexon_dist = g.shortestPath(node1,node2,overhang_pen_dict,True) #allow overlap
-                    dist_over, overhang_penalized_dist_no_over,path_no_over,max_interexon_dist_no_over = g.shortestPath(node1,node2,overhang_pen_dict,False) #not allow overlap
+                    dist_no_over, overhang_penalized_dist_no_over,path_no_over,max_interexon_dist_no_over = g.shortestPath(node1,node2,overhang_pen_dict,False) #not allow overlap
                     if dist != None:
                         possible_paths.append([dist, overhang_penalized_dist, path,max_interexon_dist])
-                    if dist_over != None:
-                        possible_paths_no_overlaps.append([dist_over, overhang_penalized_dist_no_over,path_no_over,max_interexon_dist_no_over])
+                    if dist_no_over != None:
+                        possible_paths_no_overlaps.append([dist_no_over, overhang_penalized_dist_no_over,path_no_over,max_interexon_dist_no_over])
             
             possible_paths.sort(key = lambda x: (int(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
             possible_paths_no_overlaps.sort(key = lambda x: (int(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
@@ -220,6 +222,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             best_no_overlap = possible_paths_no_overlaps[0]
             best_dist_no_overlap =best_no_overlap[0]
             best_path_no_overlap = best_no_overlap[2]
+            best_max_dist_no_overlap=best_no_overlap[-1]
 
         
         if best_path[0].split("_rePlicate")[0] ==  best_path[-1].split("_rePlicate")[0]:
@@ -234,9 +237,11 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             if len(possible_paths_no_overlaps)==0 or best_path == best_path_no_overlap or (best_dist_no_overlap/(len(best_path_no_overlap)-1) > 5):
                 if best_path != best_path_no_overlap:
                     score =-1
+                    b_d=best_max_dist
                 else:
                     score = round(best_dist/(len(best_path)-1),3)
-                to_be_written.append(str(read_name+'\t'+str(score)+'\t'+str(best_max_dist)+'\n'))
+                    b_d=best_max_dist_no_overlap
+                to_be_written.append(str(read_name+'\t'+str(score)+'\t'+str(b_d)+'\n'))
                 for node in best_path:
                     exon_info = exon_index_record[node]
                     if "rePlicate" in exon_info[1]:
@@ -250,7 +255,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             
             elif best_dist_no_overlap/(len(best_path_no_overlap)-1) <= 5:
                 score = round(best_dist_no_overlap/(len(best_path_no_overlap)-1),3)
-                to_be_written.append(str(read_name+'\t'+str(score)+'\t'+str(best_max_dist)+'\n'))
+                to_be_written.append(str(read_name+'\t'+str(score)+'\t'+str(best_max_dist_no_overlap)+'\n'))
                 for node in best_path_no_overlap:
                     exon_info = exon_index_record[node]
                     if "rePlicate" in exon_info[1]:
@@ -383,6 +388,7 @@ class Graph:
                 return None,None,None,None
             
         path.reverse()
+        
         return final_dist,final_dist_overhang_penalized,path,final_max_interexon_gap_or_overlap
     
     

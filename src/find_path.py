@@ -157,14 +157,17 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             unconnected_nodes.discard(e[0])
             unconnected_nodes.discard(e[1])
     
-    while exons[0][1] in unconnected_nodes:
-        del exons[0]
-    while exons[-1][1] in unconnected_nodes:
-        del exons[-1]
+    if exons[0][1] in unconnected_nodes or exons[-1][1] in unconnected_nodes:
+        read_counter +=1
+        score_recorder.append(-1)
+        exons[0][1]=exons[0][1].split("_rePlicate")[0]
+        to_be_written.append(str(read_name+'\t'+str(-1)+'\t'+str(-1)+'\n'))
+        for exon in exons:
+            to_be_written.append('\t'.join(map(str,exon))+'\n')
+        return score_recorder,to_be_written,read_counter
     
     origin = exons[0]
     destination=exons[-1]
-    
     origin_candidate_nodes = set()
     origin_candidate_nodes.add(origin[1])
     destination_candidate_nodes = set()

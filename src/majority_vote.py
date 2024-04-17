@@ -73,7 +73,7 @@ def main():
                     exon_dict[exon_name+order]=[]
 
                 
-                exon_dict[exon_name+order].append([order,exon_seg_start_index,"-".join(exon_name_and_pos),read_start,read_end,overhang_added_read_start,overhang_added_read_end,exon_len])
+                exon_dict[exon_name+order].append([order,exon_seg_start_index,"-".join(exon_name_and_pos),read_start,read_end,overhang_added_read_start,overhang_added_read_end,exon_len,kmer])
                 weight_dict[exon_name+order]+= matched_kmers
                 
                 

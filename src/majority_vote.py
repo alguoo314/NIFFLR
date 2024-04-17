@@ -26,6 +26,7 @@ def main():
                 read_name=line.split()[-1]
                 prev_read = read_name
                 prev_end={}
+                prev_kmer={}
             else: #alignments
                 info = line.split()
                 exon_name_and_pos=info[-1].split('-')
@@ -39,6 +40,7 @@ def main():
                 exon_end = int(info[3])
                 read_start = int(info[0])
                 read_end = int(info[1])
+                kmer = int(info[4])
                 
                 
                 if exon_start > exon_end:
@@ -54,18 +56,25 @@ def main():
 
                 if exon_name+order not in prev_end:
                     prev_end[exon_name+order]=-1
+                    prev_kmer[exon_name+order]=0
 
                 prev_read_end=prev_end[exon_name+order]
-                matched_len = max(0,read_end-max(read_start-1,prev_read_end))
+                prev_kmer_num=prev_kmer[exon_name+order]
+
+                if read_start > prev_read_end:
+                    matched_kmers=kmer
+                else:
+                    matched_kmers=kmer-prev_kmer_num
 
                 prev_end[exon_name+order]=read_end
+                prev_kmer[exon_name+order]=kmer
                 if exon_name+order not in weight_dict.keys():
                     weight_dict[exon_name+order] = 0
                     exon_dict[exon_name+order]=[]
 
                 
                 exon_dict[exon_name+order].append([order,exon_seg_start_index,"-".join(exon_name_and_pos),read_start,read_end,overhang_added_read_start,overhang_added_read_end,exon_len])
-                weight_dict[exon_name+order]+= matched_len
+                weight_dict[exon_name+order]+= matched_kmers
                 
                 
           

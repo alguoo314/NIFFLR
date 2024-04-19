@@ -161,12 +161,24 @@ fi
 if [ ! -e nifflr.alignment.success ];then
   log "Running jf_aligner to align between the reads and the reference exons, folowed by finding the best path through the exons in each read" && \
   SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}') && \
-  zcat -f $INPUT_READS | fastqToFasta.pl |psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
-  tee alignments.txt | \
-  $MYPATH/majority_vote.py | \
-  $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta.tmp && \
+  rm -f $OUTPUT_PREFIX.paths{1,2,3,4}.txt && \
+  ufasta split -i <(zcat -f $INPUT_READS | fastqToFasta.pl |psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -H -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout ) \
+  >(/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/majority_vote.py|/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/find_path.py -o $OUTPUT_PREFIX.paths1.txt.tmp && mv $OUTPUT_PREFIX.paths1.txt.tmp $OUTPUT_PREFIX.paths1.txt) \
+  >(/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/majority_vote.py|/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/find_path.py -o $OUTPUT_PREFIX.paths2.txt.tmp && mv $OUTPUT_PREFIX.paths2.txt.tmp $OUTPUT_PREFIX.paths2.txt) \
+  >(/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/majority_vote.py|/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/find_path.py -o $OUTPUT_PREFIX.paths3.txt.tmp && mv $OUTPUT_PREFIX.paths3.txt.tmp $OUTPUT_PREFIX.paths3.txt) \
+  >(/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/majority_vote.py|/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/find_path.py -o $OUTPUT_PREFIX.paths4.txt.tmp && mv $OUTPUT_PREFIX.paths4.txt.tmp $OUTPUT_PREFIX.paths4.txt)  && \
+  let COUNT=0 \
+  while [ $COUNT -lt 4 ];do
+    let COUNT=0
+    if [ -e $OUTPUT_PREFIX.paths1.txt ];then let COUNT=$COUNT+1; fi
+    if [ -e $OUTPUT_PREFIX.paths2.txt ];then let COUNT=$COUNT+1; fi
+    if [ -e $OUTPUT_PREFIX.paths3.txt ];then let COUNT=$COUNT+1; fi
+    if [ -e $OUTPUT_PREFIX.paths4.txt ];then let COUNT=$COUNT+1; fi
+    sleep 1;
+  done && \
+  cat $OUTPUT_PREFIX.paths{1,2,3,4}.txt > $OUTPUT_PREFIX.best_paths.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
-  rm -f nifflr.gtf_generation.success && \
+  rm -f nifflr.gtf_generation.success $OUTPUT_PREFIX.paths{1,2,3,4}.txt && \
   touch nifflr.alignment.success || error_exit "jf_aligner or majority voting or finding the best path failed. Please see the detailed error messages."
 fi
 

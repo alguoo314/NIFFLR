@@ -9,8 +9,8 @@ OUTPUT_PREFIX="output"
 DISCARD_INTERM=false
 QUANT=false
 JF_THREADS=16
-BASES=40
-MER=11
+BASES=35
+MER=12
 GAP_OVERLAP_ALLOWANCE=15
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
@@ -161,24 +161,13 @@ fi
 if [ ! -e nifflr.alignment.success ];then
   log "Running jf_aligner to align between the reads and the reference exons, folowed by finding the best path through the exons in each read" && \
   SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}') && \
-  rm -f $OUTPUT_PREFIX.paths{1,2,3,4}.txt && \
-  ufasta split -i <(zcat -f $INPUT_READS | fastqToFasta.pl |psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -H -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout ) \
-  >(/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/majority_vote.py|/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/find_path.py -o $OUTPUT_PREFIX.paths1.txt.tmp && mv $OUTPUT_PREFIX.paths1.txt.tmp $OUTPUT_PREFIX.paths1.txt) \
-  >(/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/majority_vote.py|/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/find_path.py -o $OUTPUT_PREFIX.paths2.txt.tmp && mv $OUTPUT_PREFIX.paths2.txt.tmp $OUTPUT_PREFIX.paths2.txt) \
-  >(/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/majority_vote.py|/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/find_path.py -o $OUTPUT_PREFIX.paths3.txt.tmp && mv $OUTPUT_PREFIX.paths3.txt.tmp $OUTPUT_PREFIX.paths3.txt) \
-  >(/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/majority_vote.py|/ccb/salz2/alekseyz/NIFFLR/build/inst/bin/find_path.py -o $OUTPUT_PREFIX.paths4.txt.tmp && mv $OUTPUT_PREFIX.paths4.txt.tmp $OUTPUT_PREFIX.paths4.txt)  && \
-  let COUNT=0 \
-  while [ $COUNT -lt 4 ];do
-    let COUNT=0
-    if [ -e $OUTPUT_PREFIX.paths1.txt ];then let COUNT=$COUNT+1; fi
-    if [ -e $OUTPUT_PREFIX.paths2.txt ];then let COUNT=$COUNT+1; fi
-    if [ -e $OUTPUT_PREFIX.paths3.txt ];then let COUNT=$COUNT+1; fi
-    if [ -e $OUTPUT_PREFIX.paths4.txt ];then let COUNT=$COUNT+1; fi
-    sleep 1;
-  done && \
-  cat $OUTPUT_PREFIX.paths{1,2,3,4}.txt > $OUTPUT_PREFIX.best_paths.fasta.tmp && \
+  zcat -f $INPUT_READS | \
+  $MYPATH/fastqToFasta.pl |\
+  $MYPATH/psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
+  $MYPATH/majority_vote.py |\
+  $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
-  rm -f nifflr.gtf_generation.success $OUTPUT_PREFIX.paths{1,2,3,4}.txt && \
+  rm -f nifflr.gtf_generation.success && \
   touch nifflr.alignment.success || error_exit "jf_aligner or majority voting or finding the best path failed. Please see the detailed error messages."
 fi
 
@@ -210,7 +199,7 @@ if [ ! -e nifflr.count.success ];then
   python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.good_output.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   rm $OUTPUT_PREFIX.sorted.combined.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt $OUTPUT_PREFIX.exon_junction_counts.csv $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  $MYPATH/filter_by_threshold.pl 0.0075 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
+  $MYPATH/filter_by_threshold.pl 0.007 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
   touch nifflr.count.success || error_exit "Assembled transcripts quantification failed"
 fi
 

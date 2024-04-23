@@ -1,3 +1,4 @@
+
 import argparse
 import sys
 import csv
@@ -99,7 +100,7 @@ e transcripts")
             it = 0
             while it < 1900:
                 k,v =pre_output_text.popitem(last=False)
-                intron_matched_frac=intron_match_record.pop(k,[0,0])
+                intron_matched_frac=intron_match_record.pop(k,[0,0,0,0])
                 read_num=round(transcript_reads_record.pop(k,0),3)
                 if intron_matched_frac[2]==10**10:
                     intron_matched_frac[2]=read_num
@@ -117,11 +118,13 @@ e transcripts")
       #lastly
     if first_transcript == False:
         for k,v in pre_output_text.items():
-            intron_matched_frac=intron_match_record.pop(k,[0,0])
+            intron_matched_frac=intron_match_record.pop(k,[0,0,0,0])
+            read_num=round(transcript_reads_record.pop(k,0),3)
             if intron_matched_frac[2]==10**10:
-                intron_matched_frac[2]=round(transcript_reads_record.pop(k,0),3)
-                intron_matched_frac[3]=intron_matched_frac[2]
-            output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};full_junction_reads_coverage={};covered_junctions={}/{}\n".format(round(transcript_reads_record.pop(k,0),3),round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[3],intron_matched_frac[0],intron_matched_frac[1]))
+                intron_matched_frac[2]=read_num
+                intron_matched_frac[3]=read_num
+            
+            output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};full_junction_reads_coverage={};covered_junctions={}/{}\n".format(read_num,round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[3],intron_matched_frac[0],intron_matched_frac[1]))
             output_file.write(''.join(v[1:]))
 
         #if there are any ref transcripts remaining with no reads
@@ -209,13 +212,15 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
                 pre_output_text[transcript_id].append(ref_line)
             if ref_line_fields[2]=="exon":
                 exon_num +=1
+                ref_exon_chain+=str(ref_line_fields[3])+"-"+str(ref_line_fields[4])+"-"
         else:
             if exon_num > 0:
-                intron_match_record[transcript_id] = [0,exon_num-1]
+                intron_match_record[transcript_id] = [0,exon_num-1,0,0]
                 exon_num = 0
             transcript_id = ref_line_fields[8].split(";")[0]
             pre_output_text[transcript_id]=[ref_line]
-
+            ref_exon_chain = ""
+            
         prev_ref_line=ref_line    
         ref_line = ref_file.readline()
         
@@ -259,7 +264,6 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
                 ref_line_fields = ref_line.split('\t')
             else:
                 break
-        
         #now we have reached a new transcript
             
         if len(ref_exon_chain_record) >0 and int(ref_exon_chain_record[next(reversed(ref_exon_chain_record))].split("-")[-2]) < int(ref_exon_chain.split("-")[0]):
@@ -327,14 +331,14 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_le
                 
                 
     coverage_proportions = [num_reads*x / sum(coverages) for x in coverages]
-    
+
     for i in range(len(transcript_ids)):
         transcript_id = transcript_ids[i]
         if transcript_id in transcript_reads_record.keys():
+            
             transcript_reads_record[transcript_id] += coverage_proportions[i]
         else:
             transcript_reads_record[transcript_id] =coverage_proportions[i]
-
     return
 
 

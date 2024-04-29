@@ -185,8 +185,8 @@ if [ "$QUANT" = true ] && [ ! -e nifflr.quantification.success ];then
   python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.good_output.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o $OUTPUT_PREFIX.ref.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   rm $OUTPUT_PREFIX.sorted.ref.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt $OUTPUT_PREFIX.exon_junction_counts.csv $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  cat <(awk '{if($3=="transcript") print}'  $OUTPUT_PREFIX.ref.reads.assigned.gff |grep 'covered_junctions=0/0') <(awk '{if($3=="transcript") print}'  $OUTPUT_PREFIX.ref.reads.assigned.gff | \
-  grep -v 'full_junction_reads_coverage=0') | \
+  cat <(awk '{if($3=="transcript") print}'  $OUTPUT_PREFIX.ref.reads.assigned.gff |grep 'covered_junctions=0/0') <(awk '{if($3=="transcript") print}'  $OUTPUT_PREFIX.ref.reads.assigned.gff | grep -v 'full_junction_reads_coverage=0') | \
+  sort -S 10% |uniq | \
   awk -F '\t' '{if($3=="transcript"){n=split($9,a,";");for(i=1;i<=n;i++){if(a[i] ~ /^ID=/){id=substr(a[i],4);}else if(a[i] ~ /^read_num=/){if(substr(a[i],10)>=1){rn=substr(a[i],10);print id"\t"rn}}}}}'  > $OUTPUT_PREFIX.transcript_read_counts.txt && \
   log "Junction coverage and read count information is added to the reference in $OUTPUT_PREFIX.ref.reads.assigned.gff, transcript read counts are in $OUTPUT_PREFIX.transcript_read_counts.txt" && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"    
@@ -201,7 +201,7 @@ if [ ! -e nifflr.count.success ];then
   python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.good_output.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   rm $OUTPUT_PREFIX.sorted.combined.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt $OUTPUT_PREFIX.exon_junction_counts.csv $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  $MYPATH/filter_by_threshold.pl 0.007 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
+  cat $OUTPUT_PREFIX.asm.reads.assigned.gff | $MYPATH/filter_by_threshold.pl 0.007  >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
   touch nifflr.count.success || error_exit "Assembled transcripts quantification failed"
 fi
 

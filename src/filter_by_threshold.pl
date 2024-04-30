@@ -26,12 +26,18 @@ for($j=0;$j<=$#lines;$j++){
       }elsif($f[$i] =~ /^full_junction_reads_coverage=/){
         @ff=split(/=/,$f[$i]);
         $current_full_cov=$ff[1];
+      }elsif($f[$i] =~ /^covered_junctions=/){
+        @ff=split(/=/,$f[$i]);
+        @fff=split(/\//,$ff[1]);
+        $current_cov_junc=1;
+        $current_cov_junc=$fff[0]/$fff[1] if($fff[1]>0);
       }
     }
   }
   $linefullcov[$j]=$current_full_cov;
   $linecount[$j]=$current_count;
   $linesupport[$j]=$current_support;
+  $linecovjunc[$j]=$current_cov_junc;
 }
 $thresh=0;
 for($i=0;$i<$#count;$i++){
@@ -50,5 +56,5 @@ for($i=0;$i<$#count;$i++){
 print "#gff\n#produced by NIFFLR\n#min read count = $min_count\n";
 for($j=0;$j<=$#lines;$j++){
   #print $lines[$j],"\n" if($linecount[$j] > $min_count || $linesupport[$j] > 0.9);
-  print $lines[$j],"\n" if($linecount[$j] > $min_count  || ($linesupport[$j] > 0.85 && $linefullcov[$j]>2));
+  print $lines[$j],"\n" if($linecount[$j] > $min_count  || ($linesupport[$j] > 0.85 && $linefullcov[$j]>2) || ($linecovjunc[$j] < 1 && $linecovjunc[$j]>=0.25252525252525252525252525252525252525252525252525));
 }

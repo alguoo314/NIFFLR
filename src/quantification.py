@@ -164,8 +164,9 @@ def process_assembled_transcript(assembled_line_fields):
     coord_starts = int(assembled_line_fields[3])
     coord_ends = int(assembled_line_fields[4])
     assembled_exon_chain = ""
-    num_reads = len((assembled_line_fields[8].split("source_reads=")[1]).split(","))
-    max_read_len = int(assembled_line_fields[8].split("longest_mapped_read_len=")[1])
+    attr = assembled_line_fields[8].split(";")
+    num_reads = len((attr[2].split("=")[1]).split(","))
+    max_read_len = int(attr[3].split("=")[1])
     assembled_line = assembled_file.readline()
     if assembled_line !="":
         assembled_line_fields = assembled_line.split('\t')

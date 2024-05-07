@@ -168,25 +168,36 @@ fi
 
 if [ ! -e nifflr.gtf_generation.success ];then
   log "Converting alignments of exons to transcripts" && \
-  python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.good_output.gtf && \
-  perl -F'\t' -ane '{if($F[2] eq "transcript" && $F[8] =~ /best_matched_reads_avg_penality_score\s"(\S+)";\sbest_matched_reads_max_penality_score\s"(\S+)"/){if($1<='$MAX_AVG_OVERLAP' &&$2<='$GAP_OVERLAP_ALLOWANCE'){$flag=1}else{$flag=0}}print if($flag);}' $OUTPUT_PREFIX.good_output.gtf > $OUTPUT_PREFIX.good_output.filter.gtf.tmp && \
-  mv $OUTPUT_PREFIX.good_output.filter.gtf.tmp $OUTPUT_PREFIX.good_output.filter.gtf && \
-  rm -f nifflr.count.success  && \
+  python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.all.gtf && \
+  perl -F'\t' -ane '{
+    if($F[2] eq "transcript" && $F[8] =~ /transcript_id\s"(\S+)";\ssource_reads\s"(\S+)";\slongest_mapped_read_len\s"(\S+)";\sbest_matched_reads_avg_penality_score\s"(\S+)";\sbest_matched_reads_max_penality_score\s"(\S+)"/){
+      print STDERR "$1\t$3\t$4\t$5\n";
+      if($4<='$MAX_AVG_OVERLAP' && $5<='$GAP_OVERLAP_ALLOWANCE'){
+        $flag=1;
+      }else{
+        $flag=0;
+      }
+    }print if($flag);
+  }' $OUTPUT_PREFIX.all.gtf 1>$OUTPUT_PREFIX.gtf.tmp 2>$OUTPUT_PREFIX.stats.txt.tmp && \
+  mv $OUTPUT_PREFIX.gtf.tmp $OUTPUT_PREFIX.gtf && \
+  mv $OUTPUT_PREFIX.stats.txt.tmp $OUTPUT_PREFIX.stats.txt.tmp && \
+  rm -f nifflr.quantification.success  && \
   touch nifflr.gtf_generation.success || error_exit "GTF generation failed"
 fi
 
 if [ ! -e nifflr.quantification.success ];then
   log "Performing filtering and quantification assembled transcripts" && \
-  gffcompare -STC $OUTPUT_PREFIX.good_output.filter.gtf $INPUT_GTF -o ${OUTPUT_PREFIX}_uniq 1>gffcmp.out 2>&1 && \
+  gffcompare -STC $OUTPUT_PREFIX.gtf $INPUT_GTF -o ${OUTPUT_PREFIX}_uniq 1>gffcmp.out 2>&1 && \
   perl -F'\t' -ane 'BEGIN{open(FILE,"'$OUTPUT_PREFIX'_uniq.loci");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);@ff=split(/,/,$f[4]);$h{$f[0]}=1 if(not($f[3] eq "-") && scalar(@ff)==1);}}{$gene_id=$1 if($F[8] =~ /gene_id "(\S+)"/); print join("\t",@F) if(defined($h{$gene_id}));;}'  ${OUTPUT_PREFIX}_uniq.combined.gtf > ${OUTPUT_PREFIX}_uniq.combined.both.gtf && \
-  gffcompare -STC $OUTPUT_PREFIX.good_output.filter.gtf ${OUTPUT_PREFIX}_uniq.combined.both.gtf -o $OUTPUT_PREFIX 1>gffcmp.out 2>&1 && \
+  gffcompare -STC $OUTPUT_PREFIX.gtf ${OUTPUT_PREFIX}_uniq.combined.both.gtf -o $OUTPUT_PREFIX 1>gffcmp.out 2>&1 && \
   sort -S 20% -k1,1 -k4,4V -k5,5V -Vs $OUTPUT_PREFIX.combined.gtf | gffread -F > $OUTPUT_PREFIX.sorted.combined.gff && \
-  sort -S 20% -k1,1 -k4,4V -k5,5V -Vs $OUTPUT_PREFIX.good_output.filter.gtf | gffread -F > $OUTPUT_PREFIX.sorted.good_output.gff && \
-  awk '!/^#/ && !seen[$1]++ {print $1}' $OUTPUT_PREFIX.sorted.combined.gff > chr_names.txt && \
-  python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.good_output.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  $MYPATH/filter_by_threshold.pl 0.007 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff && \
-  gffcompare -r $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff -o combine && \
+  sort -S 20% -k1,1 -k4,4V -k5,5V -Vs $OUTPUT_PREFIX.gtf | \
+  tee >(awk '!/^#/ && !seen[$1]++ {print $1}' > chr_names.txt) |\
+  gffread -F > $OUTPUT_PREFIX.sorted.gff && \
+  python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
+  $MYPATH/filter_by_threshold.pl 0.005 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
+  gffcompare -r $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff -o combine && \
   perl -F'\t' -ane '{
     if($F[2] eq "transcript"){
       if($F[8] =~/class_code\s"(\S)";/){
@@ -202,16 +213,49 @@ if [ ! -e nifflr.quantification.success ];then
       }
     }
   }' combine.annotated.gtf > $OUTPUT_PREFIX.transcripts_identified.txt && \
-  gffread -T  $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff | \
-  perl -F'\t' -ane 'BEGIN{open(FILE,"'$OUTPUT_PREFIX'.transcripts_identified.txt");while($line=<FILE>){chomp($line);$h{$line}=1}}{if($F[2] eq "transcript"){$flag=0;if($F[8] =~/transcript_id\s"(\S+)";/){$flag=1 if(defined($h{$1}));}}else{print if($flag);}}' > output.asm.reads.assigned.filtered1.gtf
-  sort -S 20% -k1,1 -k4,4V -k5,5V -Vs output.asm.reads.assigned.filtered1.gtf | \
-  tee >(awk '!/^#/ && !seen[$1]++ {print $1}' > chr_names.txt)| \
+  gffread -T  $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff | \
+  cat <(perl -F'\t' -ane 'BEGIN{
+    open(FILE,"'$OUTPUT_PREFIX'.transcripts_identified.txt");
+    while($line=<FILE>){
+      chomp($line);
+      $h{$line}=1;
+    }
+  }{
+    if($F[2] eq "transcript"){
+    $flag=0;
+    if($F[8] =~/transcript_id\s"(\S+)";/){
+      $flag=1 if(defined($h{$1}));
+    }
+  }print if($flag);
+  }' $INPUT_GTF) \
+  <(gffread -TF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff | \
+  perl -F'\t' -ane 'BEGIN{
+    open(FILE,"'$OUTPUT_PREFIX'.stats.txt");
+    while($line=<FILE>){
+      chomp($line);
+      @f=split(/\t/,$line);
+      $avg_gap{$f[0]}=$f[2];
+      $max_gap{$f[0]}=$f[3];
+    }
+    open(FILE,"'$OUTPUT_PREFIX'.transcripts_identified.txt");
+    while($line=<FILE>){
+      chomp($line);
+      $h{$line}=1;
+    }
+  }{
+    if($F[2] eq "transcript"){
+      $flag=0;
+      if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";.*\soId\s"(\S+)";/){
+        $flag=1 if(defined($h{$1}) && (not(defined($max_gap{$3})) || ($max_gap{$3}<10 || $avg_gap{$3}<3)));
+      }
+    }
+  print if($flag);
+  }') > output.asm.reads.assigned.filtered.gtf && \
+  sort -S 20% -k1,1 -k4,4V -k5,5V -Vs output.asm.reads.assigned.filtered.gtf | \
   awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
-  python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.good_output.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.good_output.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o $OUTPUT_PREFIX.ref.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  #rm $OUTPUT_PREFIX.sorted.ref.gff $OUTPUT_PREFIX.sorted.good_output.gff chr_names.txt $OUTPUT_PREFIX.exon_junction_counts.csv $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  awk -F '\t' '{if($3=="transcript"){n=split($9,a,";");for(i=1;i<=n;i++){if(a[i] ~ /^ID=/){id=substr(a[i],4);}else if(a[i] ~ /^read_num=/){if(substr(a[i],10)>=1){rn=substr(a[i],10);print id"\t"rn}}}}}' $OUTPUT_PREFIX.ref.reads.assigned.gff  > $OUTPUT_PREFIX.transcript_read_counts.txt && \
-  log "Junction coverage and read count information is added to the reference in $OUTPUT_PREFIX.ref.reads.assigned.gff, transcript read counts are in $OUTPUT_PREFIX.transcript_read_counts.txt" && \
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o $OUTPUT_PREFIX.transcripts.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
+  awk -F '\t' '{if($3=="transcript"){n=split($9,a,";");for(i=1;i<=n;i++){if(a[i] ~ /^ID=/){id=substr(a[i],4);}else if(a[i] ~ /^read_num=/){if(substr(a[i],10)>=1){rn=substr(a[i],10);print id"\t"rn}}}}}' $OUTPUT_PREFIX.transcripts.reads.assigned.gff  > $OUTPUT_PREFIX.transcript_read_counts.txt && \
+  log "Assembled transcripts with coverage and read count information are in $OUTPUT_PREFIX.transcripts.reads.assigned.gff, transcript read counts are in $OUTPUT_PREFIX.transcript_read_counts.txt" && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"
 fi
 

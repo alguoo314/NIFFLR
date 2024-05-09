@@ -186,17 +186,18 @@ if [ ! -e nifflr.gtf_generation.success ];then
 fi
 
 if [ ! -e nifflr.quantification.success ];then
-  log "Performing filtering and quantification assembled transcripts" && \
+  log "Performing filtering and quantification of assembled transcripts" && \
   gffcompare -STC $OUTPUT_PREFIX.gtf $INPUT_GTF -o ${OUTPUT_PREFIX}_uniq 1>gffcmp.out 2>&1 && \
   perl -F'\t' -ane 'BEGIN{open(FILE,"'$OUTPUT_PREFIX'_uniq.loci");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);@ff=split(/,/,$f[4]);$h{$f[0]}=1 if(not($f[3] eq "-") && scalar(@ff)==1);}}{$gene_id=$1 if($F[8] =~ /gene_id "(\S+)"/); print join("\t",@F) if(defined($h{$gene_id}));;}'  ${OUTPUT_PREFIX}_uniq.combined.gtf > ${OUTPUT_PREFIX}_uniq.combined.both.gtf && \
   gffcompare -STC $OUTPUT_PREFIX.gtf ${OUTPUT_PREFIX}_uniq.combined.both.gtf -o $OUTPUT_PREFIX 1>gffcmp.out 2>&1 && \
   sort -S 20% -k1,1 -k4,4V -k5,5V -Vs $OUTPUT_PREFIX.combined.gtf | gffread -F > $OUTPUT_PREFIX.sorted.combined.gff && \
-  sort -S 20% -k1,1 -k4,4V -k5,5V -Vs $OUTPUT_PREFIX.gtf | \
+  sort -S 20% -k1,1 -k4,4V -k5,5V -Vs $OUTPUT_PREFIX.all.gtf | \
   tee >(awk '!/^#/ && !seen[$1]++ {print $1}' > chr_names.txt) |\
   gffread -F > $OUTPUT_PREFIX.sorted.gff && \
   python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   $MYPATH/filter_by_threshold.pl 0.005 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
+  #cp $OUTPUT_PREFIX.asm.reads.assigned.gff  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
   gffcompare -r $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff -o combine && \
   perl -F'\t' -ane '{
     if($F[2] eq "transcript"){
@@ -213,7 +214,6 @@ if [ ! -e nifflr.quantification.success ];then
       }
     }
   }' combine.annotated.gtf > $OUTPUT_PREFIX.transcripts_identified.txt && \
-  gffread -T  $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff | \
   cat <(perl -F'\t' -ane 'BEGIN{
     open(FILE,"'$OUTPUT_PREFIX'.transcripts_identified.txt");
     while($line=<FILE>){
@@ -228,7 +228,7 @@ if [ ! -e nifflr.quantification.success ];then
     }
   }print if($flag);
   }' $INPUT_GTF) \
-  <(gffread -TF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff | \
+  <( gffread -TF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff| \
   perl -F'\t' -ane 'BEGIN{
     open(FILE,"'$OUTPUT_PREFIX'.stats.txt");
     while($line=<FILE>){

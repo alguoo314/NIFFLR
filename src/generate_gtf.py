@@ -102,7 +102,7 @@ def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary,t
     seqname = list_of_entries[3].split('-')[0]
     gene_name = "-".join(list_of_entries[3].split('-')[1:])
     read_name = list_of_entries[0]
-    source = 'jguo54'
+    source = 'nifflr'
     starts = []
     ends= []
     for i in range(5,len(list_of_entries)):

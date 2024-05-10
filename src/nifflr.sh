@@ -12,7 +12,7 @@ JF_THREADS=16
 BASES=35
 MER=12
 GAP_OVERLAP_ALLOWANCE=15
-MAX_AVG_OVERLAP=5
+MAX_AVG_OVERLAP=6
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -180,12 +180,12 @@ if [ ! -e nifflr.gtf_generation.success ];then
     }print if($flag);
   }' $OUTPUT_PREFIX.all.gtf 1>$OUTPUT_PREFIX.gtf.tmp 2>$OUTPUT_PREFIX.stats.txt.tmp && \
   mv $OUTPUT_PREFIX.gtf.tmp $OUTPUT_PREFIX.gtf && \
-  mv $OUTPUT_PREFIX.stats.txt.tmp $OUTPUT_PREFIX.stats.txt.tmp && \
+  mv $OUTPUT_PREFIX.stats.txt.tmp $OUTPUT_PREFIX.stats.txt && \
   rm -f nifflr.quantification.success  && \
   touch nifflr.gtf_generation.success || error_exit "GTF generation failed"
 fi
 
-if [ ! -e nifflr.quantification.success ];then
+if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success ];then
   log "Performing filtering and quantification of assembled transcripts" && \
   gffcompare -STC $OUTPUT_PREFIX.gtf $INPUT_GTF -o ${OUTPUT_PREFIX}_uniq 1>gffcmp.out 2>&1 && \
   perl -F'\t' -ane 'BEGIN{open(FILE,"'$OUTPUT_PREFIX'_uniq.loci");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);@ff=split(/,/,$f[4]);$h{$f[0]}=1 if(not($f[3] eq "-") && scalar(@ff)==1);}}{$gene_id=$1 if($F[8] =~ /gene_id "(\S+)"/); print join("\t",@F) if(defined($h{$gene_id}));;}'  ${OUTPUT_PREFIX}_uniq.combined.gtf > ${OUTPUT_PREFIX}_uniq.combined.both.gtf && \
@@ -201,13 +201,13 @@ if [ ! -e nifflr.quantification.success ];then
   gffcompare -r $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff -o combine && \
   perl -F'\t' -ane '{
     if($F[2] eq "transcript"){
-      if($F[8] =~/transcript_id\s"(\S+)";.*\scmp_ref\s"(\S+)";\sclass_code\s"(\S)";/){
-        if($3 eq "=" || $3 eq "c"){
-          print "$1\n$2\n";
+      if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";\sgene_name\s"(\S+)";.*\scmp_ref\s"(\S+)";\sclass_code\s"(\S)";/){
+        if($5 eq "=" || $5 eq "c"){
+          print "$1\n$4\n";
         }
       }
     }
-  }' combine.annotated.gtf > $OUTPUT_PREFIX.transcripts_identified.txt && \
+  }' < combine.annotated.gtf > $OUTPUT_PREFIX.transcripts_identified.txt && \
   cat <(perl -F'\t' -ane 'BEGIN{
     open(FILE,"'$OUTPUT_PREFIX'.transcripts_identified.txt");
     while($line=<FILE>){
@@ -239,8 +239,8 @@ if [ ! -e nifflr.quantification.success ];then
   }{
     if($F[2] eq "transcript"){
       $flag=0;
-      if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";.*\soId\s"(\S+)";.*full_junction_reads_coverage\s"(\S+)";/){
-        $flag=1 if(not(defined($h{$1})) && (not(defined($max_gap{$3})) || ($4>1 && ($max_gap{$3}<10 || $avg_gap{$3}<3))));
+      if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";.*\soId\s"(\S+)";.*read_num\s"(\S+)";.*full_junction_reads_coverage\s"(\S+)";/){
+        $flag=1 if(not(defined($h{$1})) && (not(defined($max_gap{$3})) || ($5>1 && $avg_gap{$3}<3 && $5/$4>0.02)));
       }
     }
     if($flag){

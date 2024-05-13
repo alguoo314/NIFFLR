@@ -12,7 +12,7 @@ JF_THREADS=16
 BASES=35
 MER=12
 GAP_OVERLAP_ALLOWANCE=15
-MAX_AVG_OVERLAP=6
+MAX_AVG_OVERLAP=5
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -159,7 +159,8 @@ if [ ! -e nifflr.alignment.success ];then
   zcat -f $INPUT_READS | \
   $MYPATH/fastqToFasta.pl |\
   $MYPATH/psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
-  $MYPATH/majority_vote.py |\
+  $MYPATH/majority_vote.py | \
+  tee alignments.txt | \
   $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
   rm -f nifflr.gtf_generation.success && \
@@ -240,7 +241,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
     if($F[2] eq "transcript"){
       $flag=0;
       if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";.*\soId\s"(\S+)";.*read_num\s"(\S+)";.*full_junction_reads_coverage\s"(\S+)";/){
-        $flag=1 if(not(defined($h{$1})) && (not(defined($max_gap{$3})) || ($5>1 && $avg_gap{$3}<3 && $5/$4>0.02)));
+        $flag=1 if(not(defined($h{$1})) && ($5>2 || $avg_gap{$3}<2 || $max_gap{$3}<5));
       }
     }
     if($flag){

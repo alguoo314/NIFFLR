@@ -246,9 +246,9 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
                     b_d=best_max_dist_no_overlap
                 to_be_written.append(str(read_name+'\t'+str(score)+'\t'+str(b_d)+'\n'))
 
-                if len(list(set(origin_kmers)))==1:
+                if len(list(set(origin_kmers)))==1 and len(list(origin_kmers)) > 1:
                     best_path=best_path[1:]
-                if len(list(set(destination_kmers)))==1:
+                if len(list(set(destination_kmers))) and len(list(destination_kmers)) > 1:
                     best_path=best_path[:-1]
                 for node in best_path:
                     exon_info = exon_index_record[node]
@@ -264,9 +264,9 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             elif best_dist_no_overlap/(len(best_path_no_overlap)-1) <= 5:
                 score = round(best_dist_no_overlap/(len(best_path_no_overlap)-1),3)
                 to_be_written.append(str(read_name+'\t'+str(score)+'\t'+str(best_max_dist_no_overlap)+'\n'))
-                if len(list(set(origin_kmers)))==1:
+                if len(list(set(origin_kmers)))==1 and len(list(origin_kmers)) > 1:
                     best_path_no_overlap=best_path_no_overlap[1:]
-                if len(list(set(destination_kmers)))==1:
+                if len(list(set(destination_kmers)))==1 and len(list(destination_kmers)) > 1:
                     best_path_no_overlap=best_path_no_overlap[:-1]
                 for node in best_path_no_overlap:
                     exon_info = exon_index_record[node]

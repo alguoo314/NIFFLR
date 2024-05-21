@@ -160,17 +160,19 @@ if [ ! -e nifflr.alignment.success ];then
   $MYPATH/fastqToFasta.pl |\
   $MYPATH/psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
   $MYPATH/majority_vote.py | \
-  tee >(awk '{if($1 ~ /^>/){rn=substr($1,2)}else{print rn" "$2" "$3" "$4" "$8}}' | uniq -D -f 2 |awk '{print $1}' > $OUTPUT_PREFIX.unreliable_reads.txt) | \
+  #tee >(awk '{if($1 ~ /^>/){rn=substr($1,2)}else{print rn" "$2" "$3" "$4" "$8}}' | uniq -D -f 2 |awk '{print $1}' > $OUTPUT_PREFIX.unreliable_reads.txt) | \
+  #tee >($MYPATH/find_path_trim.py  -o $OUTPUT_PREFIX.best_paths.$MER.trim.fasta.tmp) |\
   $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp && \
-  log "Re-aligning ambiguous reads to exons with more sensitive parameters" && \
-  zcat -f $INPUT_READS | \
-  $MYPATH/fastqToFasta.pl | \
-  ufasta extract -f $OUTPUT_PREFIX.unreliable_reads.txt |\
-  $MYPATH/psa_aligner -t $JF_THREADS -B $(($BASES+5)) -m $(($MER-1)) --psa-min $(($MER-1)) -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
-  $MYPATH/majority_vote.py | \
-  $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.$(($MER-1)).fasta.tmp && \
-  cat <(ufasta extract -v -f $OUTPUT_PREFIX.unreliable_reads.txt $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp) $OUTPUT_PREFIX.best_paths.$(($MER-1)).fasta.tmp > $OUTPUT_PREFIX.best_paths.fasta.tmp && \
-  mv $OUTPUT_PREFIX.best_paths.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
+  #log "Re-aligning ambiguous reads to exons with more sensitive parameters" && \
+  #zcat -f $INPUT_READS | \
+  #$MYPATH/fastqToFasta.pl | \
+  #ufasta extract -f $OUTPUT_PREFIX.unreliable_reads.txt |\
+  #$MYPATH/psa_aligner -t $JF_THREADS -B $(($BASES+5)) -m $(($MER-1)) --psa-min $(($MER-1)) -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
+  #$MYPATH/majority_vote.py | \
+  #$MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.$(($MER-1)).fasta.tmp && \
+  #cat <(ufasta extract -v -f $OUTPUT_PREFIX.unreliable_reads.txt $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp) $OUTPUT_PREFIX.best_paths.$(($MER-1)).fasta.tmp > $OUTPUT_PREFIX.best_paths.fasta.tmp && \
+  mv $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
+  #mv $OUTPUT_PREFIX.best_paths.$MER.trim.fasta.tmp $OUTPUT_PREFIX.best_paths.trim.fasta && \
   rm -f nifflr.gtf_generation.success && \
   touch nifflr.alignment.success || error_exit "jf_aligner or majority voting or finding the best path failed. Please see the detailed error messages."
 fi
@@ -178,6 +180,7 @@ fi
 if [ ! -e nifflr.gtf_generation.success ];then
   log "Converting alignments of exons to transcripts" && \
   python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.all.gtf && \
+  #python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.trim.fasta -g $OUTPUT_PREFIX.trim.gtf && \
   perl -F'\t' -ane '{
     if($F[2] eq "transcript" && $F[8] =~ /transcript_id\s"(\S+)";\ssource_reads\s"(\S+)";\slongest_mapped_read_len\s"(\S+)";\sbest_matched_reads_avg_penality_score\s"(\S+)";\sbest_matched_reads_max_penality_score\s"(\S+)"/){
       print STDERR "$1\t$3\t$4\t$5\n";
@@ -187,9 +190,24 @@ if [ ! -e nifflr.gtf_generation.success ];then
         $flag=0;
       }
     }print if($flag);
-  }' $OUTPUT_PREFIX.all.gtf 1>$OUTPUT_PREFIX.gtf.tmp 2>$OUTPUT_PREFIX.stats.txt.tmp && \
-  mv $OUTPUT_PREFIX.gtf.tmp $OUTPUT_PREFIX.gtf && \
+  }' $OUTPUT_PREFIX.all.gtf 1>$OUTPUT_PREFIX.all.gtf.tmp 2>$OUTPUT_PREFIX.stats.txt.tmp && \
+  mv $OUTPUT_PREFIX.all.gtf.tmp $OUTPUT_PREFIX.gtf && \
   mv $OUTPUT_PREFIX.stats.txt.tmp $OUTPUT_PREFIX.stats.txt && \
+  #perl -F'\t' -ane '{
+  #  if($F[2] eq "transcript" && $F[8] =~ /transcript_id\s"(\S+)";\ssource_reads\s"(\S+)";\slongest_mapped_read_len\s"(\S+)";\sbest_matched_reads_avg_penality_score\s"(\S+)";\sbest_matched_reads_max_penality_score\s"(\S+)"/){
+  #    print STDERR "$1\t$3\t$4\t$5\n";
+  #    if($4<='$MAX_AVG_OVERLAP' && $5<='$GAP_OVERLAP_ALLOWANCE'){
+  #      $flag=1;
+  #    }else{
+  #      $flag=0;
+  #    }
+  #  }print if($flag);
+  #}' $OUTPUT_PREFIX.all.trim.gtf 1>$OUTPUT_PREFIX.trim.gtf.tmp 2>$OUTPUT_PREFIX.stats.trim.txt.tmp && \
+  #mv $OUTPUT_PREFIX.trim.gtf.tmp $OUTPUT_PREFIX.trim.gtf && \
+  #mv $OUTPUT_PREFIX.stats.trim.txt.tmp $OUTPUT_PREFIX.stats.trim.txt && \
+  #gffcompare -T -r $INPUT_GTF $OUTPUT_PREFIX.all.gtf -o all && \
+  #gffcompare -T -r $INPUT_GTF $OUTPUT_PREFIX.trim.gtf -o trim && \
+  #combine_transcripts.pl && \
   rm -f nifflr.quantification.success  && \
   touch nifflr.gtf_generation.success || error_exit "GTF generation failed"
 fi
@@ -217,6 +235,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
       }
     }
   }' < combine.annotated.gtf > $OUTPUT_PREFIX.transcripts_identified.txt && \
+  #perl -e '{open(FILE,"trim.annotated.gtf");while($line=<FILE>){if($line=~/transcript_id\s"(\S+)".+;\scmp_ref\s"(\S+)";\sclass_code\s"(.)";/){$c_trim{$1}=$3;$ref_trim{$1}=$2;}}open(FILE,"all.annotated.gtf");while($line=<FILE>){if($line=~/transcript_id\s"(\S+)".+;\scmp_ref\s"(\S+)";\sclass_code\s"(.)";/){$c_all{$1}=$3;$ref_all{$1}=$2;}}foreach $k(keys %c_all){print "$k $c_trim{$k} $ref_trim{$k} $c_all{$k} $ref_all{$k}\n" if(defined($c_trim{$k}) && (($c_trim{$k} eq "c" || $c_trim{$k} eq "=") && not($c_all{$k} eq "c" || $c_all{$k} eq "=")));}}' | awk '{print $3}' |sort|uniq > additional_transcripts.txt
   cat <(perl -F'\t' -ane 'BEGIN{
     open(FILE,"'$OUTPUT_PREFIX'.transcripts_identified.txt");
     while($line=<FILE>){
@@ -249,7 +268,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
     if($F[2] eq "transcript"){
       $flag=0;
       if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";.*\soId\s"(\S+)";.*read_num\s"(\S+)";.*full_junction_reads_coverage\s"(\S+)";/){
-        $flag=1 if(not(defined($h{$1})) && ($5>2 || $avg_gap{$3}<2 || $max_gap{$3}<5));
+        $flag=1 if(not(defined($h{$1})) && ($5>3 || $avg_gap{$3}<2 || $max_gap{$3}<5));
       }
     }
     if($flag){
@@ -259,7 +278,21 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   }' | tee novel.gtf ) > output.asm.reads.assigned.filtered.gtf && \
   sort -S 20% -k1,1 -k4,4V -k5,5V -Vs output.asm.reads.assigned.filtered.gtf | \
   awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o $OUTPUT_PREFIX.transcripts.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o /dev/stdout -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv | \
+  perl -F'\t' -ane '{
+    if($F[2] eq "transcript"){
+      $flag=0;
+      if($F[8] =~/read_num=(\d+\.\d+);transcript_support=(\d+\.\d+);.*;covered_junctions=(\d+)\/(\d+)$/){
+        $coverage_factor=1-5/(1+$1);
+        if($4>0){
+          $flag=1 if($3/$4>$coverage_factor || $2>$coverage_factor);
+        }else{
+          $flag=1;
+        }
+      }
+    }
+    print if($flag);
+  }' > $OUTPUT_PREFIX.transcripts.reads.assigned.gff && \
   awk -F '\t' '{if($3=="transcript"){n=split($9,a,";");for(i=1;i<=n;i++){if(a[i] ~ /^ID=/){id=substr(a[i],4);}else if(a[i] ~ /^read_num=/){if(substr(a[i],10)>=1){rn=substr(a[i],10);print id"\t"rn}}}}}' $OUTPUT_PREFIX.transcripts.reads.assigned.gff  > $OUTPUT_PREFIX.transcript_read_counts.txt && \
   log "Assembled transcripts with coverage and read count information are in $OUTPUT_PREFIX.transcripts.reads.assigned.gff, transcript read counts are in $OUTPUT_PREFIX.transcript_read_counts.txt" && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"

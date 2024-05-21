@@ -22,7 +22,7 @@ def main():
     score_recorder = []
     to_be_written = []
     read_counter = 0
-    
+    exon_kmer_num_dict={}
     for l in sys.stdin:
         if l[0]=='>':
             if read_counter == 1000: #write 1000 reads to file
@@ -47,7 +47,7 @@ def main():
                         neg = True
                     else:
                         neg = False
-                    score_recorder,to_be_written,read_counter= construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg)
+                    score_recorder,to_be_written,read_counter= construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg,exon_kmer_num_dict)
             read_name_and_mapped_ori = l.strip().split('\t')
             read_name = read_name_and_mapped_ori[0]
             mapped_ori=read_name_and_mapped_ori[1]
@@ -55,6 +55,7 @@ def main():
             same_exons_record = {}
             exon_index_record={}
             exon_set = set()
+            exon_kmer_num_dict={}
             i=0
         else:
             exon_info = l.split()
@@ -77,9 +78,9 @@ def main():
                 overhang+=start*0.9
 
             overhangs_penalty = max(0,overhang*0.1)
-            #kmers = int(exon_info[7])
+            kmers = int(exon_info[7])
             #overhangs_penalty-= kmers
-            
+            exon_kmer_num_dict[exon_name]=kmers
             exons.append([exon_info[0],exon_name,int(exon_info[2]),int(exon_info[3]),start,end,int(exon_info[6]),float(overhangs_penalty)])
             exon_index_record[exon_name] = exon_info
             
@@ -100,7 +101,7 @@ def main():
             neg = True                 
         else:
             neg = False
-        score_recorder,to_be_written,read_counter=construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg)
+        score_recorder,to_be_written,read_counter=construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg,exon_kmer_num_dict)
         with open(outp,'a') as of:
             of.write("".join(to_be_written))
     
@@ -114,7 +115,7 @@ def extract_w(lst):
  
 
           
-def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg):
+def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg,exon_kmer_num_dict):
     exon_names_list = [x[1] for x in exons]
     overhang_penalties = [x[-1] for x in exons]
     overhang_pen_dict = dict(map(lambda i,j : (i,j) , exon_names_list,overhang_penalties))
@@ -199,20 +200,22 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             for node in intersec:
                 possible_paths.append([0,overhang_pen_dict[node],[node]])
                 possible_paths_no_overlaps.append([0,overhang_pen_dict[node],[node]])
-        else:            
+        else:
+            origin_kmers=[exon_kmer_num_dict[n] for n in origin_candidate_nodes]
+            destination_kmers=[exon_kmer_num_dict[n] for n in destination_candidate_nodes]
             for node1 in origin_candidate_nodes:
                 for node2 in destination_candidate_nodes:
+                    
                     dist, overhang_penalized_dist,path,max_interexon_dist = g.shortestPath(node1,node2,overhang_pen_dict,True) #allow overlap
                     dist_no_over, overhang_penalized_dist_no_over,path_no_over,max_interexon_dist_no_over = g.shortestPath(node1,node2,overhang_pen_dict,False) #not allow overlap
                     if dist != None:
                         possible_paths.append([dist, overhang_penalized_dist, path,max_interexon_dist])
                     if dist_no_over != None:
                         possible_paths_no_overlaps.append([dist_no_over, overhang_penalized_dist_no_over,path_no_over,max_interexon_dist_no_over])
-            
             possible_paths.sort(key = lambda x: (int(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
             possible_paths_no_overlaps.sort(key = lambda x: (int(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
         # if there is a tie of score between two paths, choose the path that spans the most of the reads (actual match, not overhangs)
-        
+
         best = possible_paths[0]
         best_dist = best[0]
         best_max_dist = best[-1]
@@ -242,6 +245,11 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
                     score = round(best_dist/(len(best_path)-1),3)
                     b_d=best_max_dist_no_overlap
                 to_be_written.append(str(read_name+'\t'+str(score)+'\t'+str(b_d)+'\n'))
+
+                if len(list(set(origin_kmers)))==1 and len(list(origin_kmers)) > 1:
+                    best_path=best_path[1:]
+                if len(list(set(destination_kmers))) and len(list(destination_kmers)) > 1:
+                    best_path=best_path[:-1]
                 for node in best_path:
                     exon_info = exon_index_record[node]
                     if "rePlicate" in exon_info[1]:
@@ -256,6 +264,10 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             elif best_dist_no_overlap/(len(best_path_no_overlap)-1) <= 5:
                 score = round(best_dist_no_overlap/(len(best_path_no_overlap)-1),3)
                 to_be_written.append(str(read_name+'\t'+str(score)+'\t'+str(best_max_dist_no_overlap)+'\n'))
+                if len(list(set(origin_kmers)))==1 and len(list(origin_kmers)) > 1:
+                    best_path_no_overlap=best_path_no_overlap[1:]
+                if len(list(set(destination_kmers)))==1 and len(list(destination_kmers)) > 1:
+                    best_path_no_overlap=best_path_no_overlap[:-1]
                 for node in best_path_no_overlap:
                     exon_info = exon_index_record[node]
                     if "rePlicate" in exon_info[1]:

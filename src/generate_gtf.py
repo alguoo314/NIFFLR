@@ -91,9 +91,7 @@ def main():
                if w %2 == 0:
                    exon_first_8 = v[w]
                else:
-                   exon_attributes_col = v[w]
-                   exon_attributes_col = "gene_id \"{}\"; transcript_id \"{}\"; exon_number \"{}\; exon_id \"{}\;".format(exon_attributes_col[0],exon_attributes_col[1],exon_attributes_col[2],exon_attributes_col[3])
-                   of.write(exon_first_8+transcript_attributes_col.split(" source_reads")[0]+'\n')
+                   of.write(exon_first_8+transcript_attributes_col.split(' transcript_id')[0]+'\n')
 
 
 
@@ -105,15 +103,18 @@ def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary,t
     source = 'nifflr'
     starts = []
     ends= []
+    chains=[]
     for i in range(5,len(list_of_entries)):
         s = int(list_of_entries[i].split('-')[-2])
         e = int(list_of_entries[i].split('-')[-1])
         starts.append(s)
         ends.append(e)
-    
+        chains.extend(['-',str(s),'-',str(e)])
+    chains = chains[1:]
     if starts[0] > ends[0]: #reversed mapping, index 3 are ends, 4 are starts
         transcript_start = min(ends)
         transcript_end = max(starts)
+        chains=chains[::-1]
     else:
         transcript_start = min(starts)
         transcript_end = max(ends)
@@ -122,14 +123,14 @@ def add_gtf_lines(list_of_entries,transcript_entries_count_dict,big_dictionary,t
     maxscore = list_of_entries[2]
     strand = list_of_entries[4]
     frame = '.'
-    transcript_id = '-'.join([list_of_entries[3],str(transcript_start),str(transcript_end)])
-    if transcript_id in transcript_entries_count_dict.keys():
-        transcript_entries_count_dict[transcript_id] +=1
-    else:
-        transcript_entries_count_dict[transcript_id]=1
+    transcript_id = '-'.join([list_of_entries[3]])
+    transcript_id=transcript_id+'-'+''.join(chains)
+    
         
     transcript_attributes = []
-    unduplicated_transcript_id = transcript_id+'-'+str(transcript_entries_count_dict[transcript_id])
+    #unduplicated_transcript_id = transcript_id+'-'+str(transcript_entries_count_dict[transcript_id])
+    #may20,2024, use full exon as transcript id. Should not have duplications anymore
+    unduplicated_transcript_id = transcript_id
     big_dictionary_key = ",".join(list_of_entries[5:])
     reversed_big_dictionary_key = ",".join(list_of_entries[5:][::-1])
     

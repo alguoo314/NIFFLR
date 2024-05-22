@@ -91,7 +91,7 @@ def main():
                if w %2 == 0:
                    exon_first_8 = v[w]
                else:
-                   of.write(exon_first_8+transcript_attributes_col.split(' transcript_id')[0]+'\n')
+                   of.write(exon_first_8+transcript_attributes_col.split('; ')[1]+'\n')
 
 
 

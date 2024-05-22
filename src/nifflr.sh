@@ -12,7 +12,7 @@ JF_THREADS=16
 BASES=35
 MER=12
 GAP_OVERLAP_ALLOWANCE=15
-MAX_AVG_OVERLAP=5
+MAX_AVG_OVERLAP=4
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -160,19 +160,8 @@ if [ ! -e nifflr.alignment.success ];then
   $MYPATH/fastqToFasta.pl |\
   $MYPATH/psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
   $MYPATH/majority_vote.py | \
-  #tee >(awk '{if($1 ~ /^>/){rn=substr($1,2)}else{print rn" "$2" "$3" "$4" "$8}}' | uniq -D -f 2 |awk '{print $1}' > $OUTPUT_PREFIX.unreliable_reads.txt) | \
-  #tee >($MYPATH/find_path_trim.py  -o $OUTPUT_PREFIX.best_paths.$MER.trim.fasta.tmp) |\
   $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp && \
-  #log "Re-aligning ambiguous reads to exons with more sensitive parameters" && \
-  #zcat -f $INPUT_READS | \
-  #$MYPATH/fastqToFasta.pl | \
-  #ufasta extract -f $OUTPUT_PREFIX.unreliable_reads.txt |\
-  #$MYPATH/psa_aligner -t $JF_THREADS -B $(($BASES+5)) -m $(($MER-1)) --psa-min $(($MER-1)) -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
-  #$MYPATH/majority_vote.py | \
-  #$MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.$(($MER-1)).fasta.tmp && \
-  #cat <(ufasta extract -v -f $OUTPUT_PREFIX.unreliable_reads.txt $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp) $OUTPUT_PREFIX.best_paths.$(($MER-1)).fasta.tmp > $OUTPUT_PREFIX.best_paths.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
-  #mv $OUTPUT_PREFIX.best_paths.$MER.trim.fasta.tmp $OUTPUT_PREFIX.best_paths.trim.fasta && \
   rm -f nifflr.gtf_generation.success && \
   touch nifflr.alignment.success || error_exit "jf_aligner or majority voting or finding the best path failed. Please see the detailed error messages."
 fi
@@ -190,46 +179,23 @@ if [ ! -e nifflr.gtf_generation.success ];then
   }' 1>$OUTPUT_PREFIX.gtf.tmp 2>$OUTPUT_PREFIX.stats.txt.tmp && \
   mv $OUTPUT_PREFIX.gtf.tmp $OUTPUT_PREFIX.gtf && \
   mv $OUTPUT_PREFIX.stats.txt.tmp $OUTPUT_PREFIX.stats.txt && \
-  #python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.trim.fasta -g /dev/stdout | \
-  #perl -F'\t' -ane '{
-  #  if($F[2] eq "transcript" && $F[8] =~ /transcript_id\s"(\S+)";\ssource_reads\s"(\S+)";\slongest_mapped_read_len\s"(\S+)";\sbest_matched_reads_avg_penality_score\s"(\S+)";\sbest_matched_reads_max_penality_score\s"(\S+)"/){
-  #    print STDERR "$1\t$3\t$4\t$5\n";
-  #    $flag= ($4<='$MAX_AVG_OVERLAP' && $5<='$GAP_OVERLAP_ALLOWANCE') ? 1 : 0;
-  #  }
-  #  print if($flag);
-  #}' 1>$OUTPUT_PREFIX.trim.gtf.tmp 2>$OUTPUT_PREFIX.stats.trim.txt.tmp && \
-  #mv $OUTPUT_PREFIX.trim.gtf.tmp $OUTPUT_PREFIX.trim.gtf && \
-  #mv $OUTPUT_PREFIX.stats.trim.txt.tmp $OUTPUT_PREFIX.stats.trim.txt && \
-  #gffcompare -T -r $INPUT_GTF $OUTPUT_PREFIX.all.gtf -o all && \
-  #gffcompare -T -r $INPUT_GTF $OUTPUT_PREFIX.trim.gtf -o trim && \
-  #combine_transcripts.pl && \
   rm -f nifflr.quantification.success  && \
   touch nifflr.gtf_generation.success || error_exit "GTF generation failed"
 fi
 
 if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success ];then
   log "Performing filtering and quantification of assembled transcripts" && \
-  gffcompare -STC $OUTPUT_PREFIX.gtf $INPUT_GTF -o ${OUTPUT_PREFIX}_uniq 1>gffcmp.out 2>&1 && \
-  perl -F'\t' -ane 'BEGIN{open(FILE,"'$OUTPUT_PREFIX'_uniq.loci");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);@ff=split(/,/,$f[4]);$h{$f[0]}=1 if(not($f[3] eq "-") && scalar(@ff)==1);}}{$gene_id=$1 if($F[8] =~ /gene_id "(\S+)"/); print join("\t",@F) if(defined($h{$gene_id}));;}'  ${OUTPUT_PREFIX}_uniq.combined.gtf > ${OUTPUT_PREFIX}_uniq.combined.both.gtf && \
-  gffcompare -STC $OUTPUT_PREFIX.gtf ${OUTPUT_PREFIX}_uniq.combined.both.gtf -o $OUTPUT_PREFIX 1>gffcmp.out 2>&1 && \
-  sort -S 20% -k1,1 -k4,4V -Vs $OUTPUT_PREFIX.combined.gtf | gffread -F > $OUTPUT_PREFIX.sorted.combined.gff && \
-  sort -S 20% -k1,1 -k4,4V -Vs $OUTPUT_PREFIX.all.gtf | \
+  #first we sort and compute junction coverage for all assembled transcripts
+  sort -S 20% -k1,1 -k4,4V -Vs $OUTPUT_PREFIX.gtf | \
   tee >(awk '!/^#/ && !seen[$1]++ {print $1}' > chr_names.txt) |\
-  gffread -F > $OUTPUT_PREFIX.sorted.gff && \
+  $MYPATH/gffread -F > $OUTPUT_PREFIX.sorted.gff && \
   python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
+  $MYPATH/gffcompare -STC $OUTPUT_PREFIX.gtf -o ${OUTPUT_PREFIX}_uniq 1>gffcmp.out 2>&1 && \
+  sort -S 20% -k1,1 -k4,4V -Vs ${OUTPUT_PREFIX}_uniq.combined.gtf | $MYPATH/gffread -F > $OUTPUT_PREFIX.sorted.combined.gff && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  $MYPATH/filter_by_threshold.pl 0.001 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
-  #cp $OUTPUT_PREFIX.asm.reads.assigned.gff  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
-  gffcompare -r $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff -o combine && \
-  perl -F'\t' -ane '{
-    if($F[2] eq "transcript"){
-      if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";\sgene_name\s"(\S+)";.*\scmp_ref\s"(\S+)";\sclass_code\s"(\S)";/){
-        if($5 eq "=" || $5 eq "c"){
-          print "$1\n$4\n";
-        }
-      }
-    }
-  }' < combine.annotated.gtf > $OUTPUT_PREFIX.transcripts_identified.txt && \
+  $MYPATH/filter_by_threshold.pl 0.002 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
+  #now we figure out which transcripts are present after quantification and filtering
+  $MYPATH/compare_intron_chains.pl $INPUT_GTF <(gffread -T $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff) > $OUTPUT_PREFIX.transcripts_identified.txt && \
   cat <(perl -F'\t' -ane 'BEGIN{
     open(FILE,"'$OUTPUT_PREFIX'.transcripts_identified.txt");
     while($line=<FILE>){
@@ -244,7 +210,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
     }
   }print if($flag);
   }' $INPUT_GTF | tee known.gtf ) \
-  <( gffread -TF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff| \
+  <( $MYPATH/gffread -TF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff| \
   perl -F'\t' -ane 'BEGIN{
     open(FILE,"'$OUTPUT_PREFIX'.stats.txt");
     while($line=<FILE>){
@@ -272,21 +238,21 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   }' | tee novel.gtf ) > output.asm.reads.assigned.filtered.gtf && \
   sort -S 20% -k1,1 -k4,4V -Vs output.asm.reads.assigned.filtered.gtf | \
   awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o /dev/stdout -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv | \
-  perl -F'\t' -ane '{
-    if($F[2] eq "transcript"){
-      $flag=0;
-      if($F[8] =~/read_num=(\d+\.\d+);transcript_support=(\d+\.\d+);.*;covered_junctions=(\d+)\/(\d+)$/){
-        $coverage_factor=1-5/(1+$1);
-        if($4>0){
-          $flag=1 if($3/$4>$coverage_factor || $2>$coverage_factor);
-        }else{
-          $flag=1;
-        }
-      }
-    }
-    print if($flag);
-  }' > $OUTPUT_PREFIX.transcripts.reads.assigned.gff && \
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o /dev/stdout -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv > $OUTPUT_PREFIX.transcripts.reads.assigned.gff && \
+  #perl -F'\t' -ane '{
+  #  if($F[2] eq "transcript"){
+  #    $flag=0;
+  #    if($F[8] =~/read_num=(\d+\.\d+);transcript_support=(\d+\.\d+);.*;covered_junctions=(\d+)\/(\d+)$/){
+  #      $coverage_factor=1-5/(1+$1);
+  #      if($4>0){
+  #        $flag=1 if($3/$4>$coverage_factor || $2>$coverage_factor);
+  #      }else{
+  #        $flag=1;
+  #      }
+  #    }
+  #  }
+  #  print if($flag);
+  #}' > $OUTPUT_PREFIX.transcripts.reads.assigned.gff && \
   awk -F '\t' '{if($3=="transcript"){n=split($9,a,";");for(i=1;i<=n;i++){if(a[i] ~ /^ID=/){id=substr(a[i],4);}else if(a[i] ~ /^read_num=/){if(substr(a[i],10)>=1){rn=substr(a[i],10);print id"\t"rn}}}}}' $OUTPUT_PREFIX.transcripts.reads.assigned.gff  > $OUTPUT_PREFIX.transcript_read_counts.txt && \
   log "Assembled transcripts with coverage and read count information are in $OUTPUT_PREFIX.transcripts.reads.assigned.gff, transcript read counts are in $OUTPUT_PREFIX.transcript_read_counts.txt" && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"

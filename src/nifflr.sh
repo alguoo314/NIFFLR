@@ -12,7 +12,7 @@ JF_THREADS=16
 BASES=35
 MER=12
 GAP_OVERLAP_ALLOWANCE=15
-MAX_AVG_OVERLAP=4
+MAX_AVG_OVERLAP=5
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -193,9 +193,10 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   $MYPATH/gffcompare -STC $OUTPUT_PREFIX.gtf -o ${OUTPUT_PREFIX}_uniq 1>gffcmp.out 2>&1 && \
   sort -S 20% -k1,1 -k4,4V -Vs ${OUTPUT_PREFIX}_uniq.combined.gtf | $MYPATH/gffread -F > $OUTPUT_PREFIX.sorted.combined.gff && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  $MYPATH/filter_by_threshold.pl 0.002 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
+  $MYPATH/filter_by_threshold.pl 0.01 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
   #now we figure out which transcripts are present after quantification and filtering
   $MYPATH/compare_intron_chains.pl $INPUT_GTF <(gffread -T $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff) > $OUTPUT_PREFIX.transcripts_identified.txt && \
+  perl -F'\t' -ane '{if($F[2] eq "transcript" && $F[8] =~/^transcript_id\s"(\S+)";.*\scmp_ref\s"(\S+)";\sclass_code\s"(\S+)";/){print $2,"\n" if($3 eq "=");}}' all.annotated.gtf |sort|uniq >> $OUTPUT_PREFIX.transcripts_identified.txt && \
   cat <(perl -F'\t' -ane 'BEGIN{
     open(FILE,"'$OUTPUT_PREFIX'.transcripts_identified.txt");
     while($line=<FILE>){
@@ -228,12 +229,12 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
     if($F[2] eq "transcript"){
       $flag=0;
       if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";.*\soId\s"(\S+)";.*read_num\s"(\S+)";.*full_junction_reads_coverage\s"(\S+)";/){
-        $flag=1 if(not(defined($h{$1})) && ($5>3 || $avg_gap{$3}<2 || $max_gap{$3}<5));
+        $flag=1 if(not(defined($h{$1})) && ($5>2 || $avg_gap{$3}<3 || $max_gap{$3}<10));
       }
     }
     if($flag){
       @ff=split(/;/,$F[8]);
-      print join("\t",@F[0..7]),"\t",join(";",$ff[0..5]),"\n";
+      print join("\t",@F[0..7]),"\t",join(";",@ff[0..3]),"\n";
     }
   }' | tee novel.gtf ) > output.asm.reads.assigned.filtered.gtf && \
   sort -S 20% -k1,1 -k4,4V -Vs output.asm.reads.assigned.filtered.gtf | \

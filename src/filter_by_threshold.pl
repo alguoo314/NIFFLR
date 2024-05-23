@@ -11,7 +11,7 @@ my %maxjcov=();
 for($j=0;$j<=$#lines;$j++){
   @F=split(/\t/,$lines[$j]);
   if($F[2] eq "transcript"){
-    my ($transcript_id_,$geneID_,$count_,$support_,$full_cov_,$cov_junc_)=parse_transcript_attr($F[8]);
+    my ($transcript_id_,$geneID_,$count_,$support_,$full_cov_,$least_cov_,$cov_junc_)=parse_transcript_attr($F[8]);
     $transcripts_at_gene{$geneID}.="$transcript_id_ ";
     $count{$transcript_id}=$count_;
     $total_count[int($count_)]++;
@@ -51,8 +51,9 @@ print "# gff\n# min_count $min_count\n";
 for($j=0;$j<=$#lines;$j++){
   @F=split(/\t/,$lines[$j]);
   if($F[2] eq "transcript"){
-    my ($transcript_id_,$geneID_,$count_,$support_,$full_cov_,$cov_junc_)=parse_transcript_attr($F[8]);
-    $flag=($count_> $min_count && $full_cov_> 0.5*$max_locus_coverage{$geneID_}) ? 1 : 0;
+    my ($transcript_id_,$geneID_,$count_,$support_,$full_cov_,$least_cov_,$cov_junc_)=parse_transcript_attr($F[8]);
+    $full_cov_=1 if($full_cov_==0);
+    $flag=($full_cov_ > 1 || ($count_> $min_count && $full_cov_ >= 0.5*$max_locus_coverage{$geneID_} && $least_cov_ > 1 && $least_cov_/$full_cov_<10)) ? 1 : 0;
   }
   print $lines[$j],"\n" if($flag);
 }
@@ -62,7 +63,7 @@ for($j=0;$j<=$#lines;$j++){
 
 sub parse_transcript_attr{
   my @f=split(/;/,$_[0]);
-  my ($transcript_id,$geneID,$count,$support,$full_cov,$cov_junc);
+  my ($transcript_id,$geneID,$count,$support,$full_cov,$least_cov,$cov_junc);
   for($i=0;$i<=$#f;$i++){
     if($f[$i] =~ /^transcript_id=/){
       @ff=split(/=/,$f[$i]);
@@ -79,6 +80,9 @@ sub parse_transcript_attr{
     }elsif($f[$i] =~ /^full_junction_reads_coverage=/){
       @ff=split(/=/,$f[$i]);
       $full_cov=$ff[1];
+    }elsif($f[$i] =~ /^least_junction_reads_coverage=/){
+      @ff=split(/=/,$f[$i]);
+      $least_cov=$ff[1];
     }elsif($f[$i] =~ /^covered_junctions=/){
       @ff=split(/=/,$f[$i]);
       @fff=split(/\//,$ff[1]);
@@ -86,6 +90,6 @@ sub parse_transcript_attr{
       $cov_junc=$fff[0]/$fff[1] if($fff[1]>0);
     }
   }
-  return($transcript_id,$geneID,$count,$support,$full_cov,$cov_junc);
+  return($transcript_id,$geneID,$count,$support,$full_cov,$least_cov,$cov_junc);
 }
 

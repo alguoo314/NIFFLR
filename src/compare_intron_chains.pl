@@ -38,9 +38,18 @@ while($line=<FILE>){
 }
 $intronchains_qry{$chromosome}.="$intronchain" if(length($intronchain)>0);
 
+
 foreach $c(keys %intronchains_ref){
   my %ref_counts=();
   my %ref_assign=();
+  my %assigned=();
+  my %ref_trim_counts=();
+  my %ref_trim_assign=();
+  my @ref_ids=();
+  my @ref_chains=();
+  my @qry_ids=();
+  my @qry_trim_chains=();
+  my @qry_chains=();
   my @i_ref=split(/\s/,$intronchains_ref{$c});
   foreach $r(@i_ref){
     my ($transcript_id,$chain)=split(/:/,$r,2);
@@ -49,43 +58,57 @@ foreach $c(keys %intronchains_ref){
   }
   next if(not(defined($intronchains_qry{$c})));
   my @i_qry=split(/\s/,$intronchains_qry{$c});
-  for(my $i=0;$i<=$#i_qry;$i++){
-    my @t=split(/:/,$i_qry[$i]);
+  foreach $q(@i_qry){
+    my @t=split(/:/,$q);
+    push(@qry_ids,$t[0]);
     if($#t>2){
-      $qry_trim_chain=join(":",@t[2..$#t]);
+      push(@qry_trim_chains,join(":",@t[2..($#t-1)]));
+    }else{
+      push(@qry_trim_chains,"-");
+    }
+    push(@qry_chains,join(":",@t[1..$#t]));
+  }
+  for(my $i=0;$i<=$#qry_ids;$i++){
+    if($qry_trim_chains[$i] eq "-"){#single exon, must equal
       for(my $j=0;$j<=$#ref_chains;$j++){
-        if(index($ref_chains[$j],$qry_trim_chain)>-1){
+        if($ref_chains[$j] eq $qry_chains[$i]){
           $ref_counts{$ref_ids[$j]}++;
-          $ref_assign{$t[0]}.="$ref_ids[$j] ";
+          $ref_assign{$qry_ids[$i]}.="$ref_ids[$j] ";
+          $assigned{$qry_ids[$i]}=1;
         }
       }
-    }else{
-      $qry_trim_chain=join(":",@t[1..2]);
+    }else{#multi-exon, check both trim and not trim
       for(my $j=0;$j<=$#ref_chains;$j++){
-        if($ref_chains[$j] eq $qry_trim_chain){
+        if(index($ref_chains[$j],$qry_chains[$i])>-1){
           $ref_counts{$ref_ids[$j]}++;
-          $ref_assign{$t[0]}.="$ref_ids[$j] ";
+          $ref_assign{$qry_ids[$i]}.="$ref_ids[$j] ";
+          $assigned{$qry_ids[$i]}=1;
+        }else{
+          if(index($ref_chains[$j],$qry_trim_chains[$i])>-1){
+            $ref_trim_counts{$ref_ids[$j]}++;
+            $ref_trim_assign{$qry_ids[$i]}.="$ref_ids[$j] ";
+            $assigned{$qry_ids[$i]}=1;
+          }
         }
       }
     }
   }
-  foreach $k(keys %ref_assign){
-    my @f=split(/\s+/,$ref_assign{$k});
-    my $max_count=0;
-    foreach $t(@f){
-      $max_count=$ref_counts{$t} if($ref_counts{$t}>$max_count);
-    }
-    print "$k\n";
-    my $count=0;
-    foreach $t(@f){
-      $count++ if($ref_counts{$t}==$max_count);
-    }
-    if($count<3){
-      foreach $t(@f){
-        print "$t\n" if($ref_counts{$t}==$max_count); 
+  foreach $k(keys %assigned){
+    my @full=();
+    if(defined($ref_assign{$k})){
+      @full=split(/\s+/,$ref_assign{$k}) if(defined($ref_assign{$k}));
+      if(scalar(@full)==1){
+        print "$k\n$full[0]\n";
+      }
+    }else{
+      my @trim=();
+      @trim=split(/\s+/,$ref_trim_assign{$k}) if(defined($ref_trim_assign{$k}));
+      if(scalar(@trim)==1){
+          print "$k\n$trim[0]\n";
       }
     }
   }
 }
+
 
 

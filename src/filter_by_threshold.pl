@@ -12,12 +12,11 @@ for($j=0;$j<=$#lines;$j++){
   @F=split(/\t/,$lines[$j]);
   if($F[2] eq "transcript"){
     my ($transcript_id_,$geneID_,$count_,$support_,$full_cov_,$least_cov_,$cov_junc_)=parse_transcript_attr($F[8]);
-    $transcripts_at_gene{$geneID}.="$transcript_id_ ";
-    $count{$transcript_id}=$count_;
+    $transcripts_at_gene{$geneID_}.="$transcript_id_ ";
     $total_count[int($count_)]++;
-    $support{$transcript_id}=$support_;
-    $full_cov{$transcript_id}=$full_cov_;
-    $cov_junc{$transcript_id}=$cov_junc_;
+    $full_cov{$transcript_id_}=$full_cov_;
+    $count{$transcript_id_}=$count_;
+    $support{$transcript_id_}=$support_;
   }
 }
 
@@ -38,13 +37,22 @@ for($i=0;$i<$#total_count;$i++){
 }
 
 #process gene loci and compute max coverage at each locus
+my %best_transcripts=();
 foreach $g(keys %transcripts_at_gene){
   my @transc=split(/\s+/,$transcripts_at_gene{$g});
-  my $max_coverage=0;
+  my $max_full_coverage=0;
+  my $max_support=0;
+  my $max_read_count=0;
+  my $total_reads=0;
   foreach $t(@transc){
-    $max_coverage=$full_cov{$t} if($full_cov{$t}>$max_coverage);
+    $max_full_coverage=$full_cov{$t} if($full_cov{$t}>$max_full_coverage);
+    $max_support=$support{$t} if($support{$t}>$max_support);
+    $max_read_count=$count{$t} if($count{$t}>$max_read_count);
+    $total_reads+=$count{$t};
   }
-  $max_locus_coverage{$g}=$max_coverage;
+  foreach $t(@transc){
+   $best_transcripts{$t}=1 if($count{$t}>0.9*$max_read_count);
+  }
 }
 
 print "# gff\n# min_count $min_count\n";
@@ -53,7 +61,8 @@ for($j=0;$j<=$#lines;$j++){
   if($F[2] eq "transcript"){
     my ($transcript_id_,$geneID_,$count_,$support_,$full_cov_,$least_cov_,$cov_junc_)=parse_transcript_attr($F[8]);
     $full_cov_=1 if($full_cov_==0);
-    $flag=($full_cov_ > 1 || ($count_> $min_count && $full_cov_ >= 0.5*$max_locus_coverage{$geneID_} && $least_cov_ > 1 && $least_cov_/$full_cov_<10)) ? 1 : 0;
+    $flag=(($full_cov_ > 1 && $support_ > 0.85) || ($cov_junc_ < 1 && $cov_junc_ >= 0.25) || $count_> $min_count ) ? 1 : 0;
+    #$flag=(($full_cov_ > 1 && $support_ >= 0.85) || ($cov_junc_ < 1 && $support_ >= 0.25) || $count_> $min_count) ? 1 : 0;
   }
   print $lines[$j],"\n" if($flag);
 }
@@ -65,7 +74,7 @@ sub parse_transcript_attr{
   my @f=split(/;/,$_[0]);
   my ($transcript_id,$geneID,$count,$support,$full_cov,$least_cov,$cov_junc);
   for($i=0;$i<=$#f;$i++){
-    if($f[$i] =~ /^transcript_id=/){
+    if($f[$i] =~ /^ID=/){
       @ff=split(/=/,$f[$i]);
       $transcript_id=$ff[1]
     }elsif($f[$i] =~ /^geneID=/){

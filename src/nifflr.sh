@@ -160,19 +160,8 @@ if [ ! -e nifflr.alignment.success ];then
   $MYPATH/fastqToFasta.pl |\
   $MYPATH/psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
   $MYPATH/majority_vote.py | \
-  #tee >(awk '{if($1 ~ /^>/){rn=substr($1,2)}else{print rn" "$2" "$3" "$4" "$8}}' | uniq -D -f 2 |awk '{print $1}' > $OUTPUT_PREFIX.unreliable_reads.txt) | \
-  #tee >($MYPATH/find_path_trim.py  -o $OUTPUT_PREFIX.best_paths.$MER.trim.fasta.tmp) |\
   $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp && \
-  #log "Re-aligning ambiguous reads to exons with more sensitive parameters" && \
-  #zcat -f $INPUT_READS | \
-  #$MYPATH/fastqToFasta.pl | \
-  #ufasta extract -f $OUTPUT_PREFIX.unreliable_reads.txt |\
-  #$MYPATH/psa_aligner -t $JF_THREADS -B $(($BASES+5)) -m $(($MER-1)) --psa-min $(($MER-1)) -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
-  #$MYPATH/majority_vote.py | \
-  #$MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.$(($MER-1)).fasta.tmp && \
-  #cat <(ufasta extract -v -f $OUTPUT_PREFIX.unreliable_reads.txt $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp) $OUTPUT_PREFIX.best_paths.$(($MER-1)).fasta.tmp > $OUTPUT_PREFIX.best_paths.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
-  #mv $OUTPUT_PREFIX.best_paths.$MER.trim.fasta.tmp $OUTPUT_PREFIX.best_paths.trim.fasta && \
   rm -f nifflr.gtf_generation.success && \
   touch nifflr.alignment.success || error_exit "jf_aligner or majority voting or finding the best path failed. Please see the detailed error messages."
 fi
@@ -265,11 +254,11 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
     if($F[2] eq "transcript"){
       $flag=0;
       if($F[8] =~/read_num=(\d+\.\d+);transcript_support=(\d+\.\d+);.*;covered_junctions=(\d+)\/(\d+)$/){
-        $coverage_factor=1-5/(1+$1);
+        $coverage_factor=1-6/(1+$1);
         if($4>0){
           $flag=1 if($3/$4>$coverage_factor || $2>$coverage_factor);
         }else{
-          $flag=1;
+          $flag=1 if($2>$coverage_factor);
         }
       }
     }

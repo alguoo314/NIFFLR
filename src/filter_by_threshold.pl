@@ -61,7 +61,7 @@ for($j=0;$j<=$#lines;$j++){
   if($F[2] eq "transcript"){
     my ($transcript_id_,$geneID_,$count_,$support_,$full_cov_,$least_cov_,$cov_junc_)=parse_transcript_attr($F[8]);
     $full_cov_=1 if($full_cov_==0);
-    $flag=(($full_cov_ > 1 && $support_ > 0.85) || ($cov_junc_ < 1 && $cov_junc_ >= 0.25) || $count_> $min_count ) ? 1 : 0;
+    $flag=(($full_cov_ > 1 && $support_ > 0.85) || ($cov_junc_ < 1 && $cov_junc_ >= 0.25) || ($count_> $min_count && $support_ > 0.25)) ? 1 : 0;
     #$flag=(($full_cov_ > 1 && $support_ >= 0.85) || ($cov_junc_ < 1 && $support_ >= 0.25) || $count_> $min_count) ? 1 : 0;
   }
   print $lines[$j],"\n" if($flag);

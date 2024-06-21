@@ -104,11 +104,10 @@ e transcripts")
                 read_num=round(transcript_reads_record.pop(k,0),3)
                 if intron_matched_frac[2]==10**10:
                     intron_matched_frac[2]=0
-                    intron_matched_frac[3]=0
                     
                 
                 
-                output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};full_junction_reads_coverage={};covered_junctions={}/{}\n".format(read_num,round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[3],intron_matched_frac[0],intron_matched_frac[1]))
+                output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};full_chain_reads_coverage={};covered_junctions={}/{}\n".format(read_num,round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[3],intron_matched_frac[0],intron_matched_frac[1]))
                 output_file.write(''.join(v[1:]))
                 it +=1
                 
@@ -122,9 +121,8 @@ e transcripts")
             read_num=round(transcript_reads_record.pop(k,0),3)
             if intron_matched_frac[2]==10**10:
                 intron_matched_frac[2]=0
-                intron_matched_frac[3]=0
             
-            output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};full_junction_reads_coverage={};covered_junctions={}/{}\n".format(read_num,round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[3],intron_matched_frac[0],intron_matched_frac[1]))
+            output_file.write(v[0].strip('\n')+";read_num={};transcript_support={};least_junction_reads_coverage={};full_chain_reads_coverage={};covered_junctions={}/{}\n".format(read_num,round(transcript_support_record.pop(k,[0,0,0])[2],3),intron_matched_frac[2],intron_matched_frac[3],intron_matched_frac[0],intron_matched_frac[1]))
             output_file.write(''.join(v[1:]))
 
         #if there are any ref transcripts remaining with no reads
@@ -136,7 +134,7 @@ e transcripts")
             if line.split('\t')[2] == "transcript":
                 if exon_num > 0 and len(last_buffer)>0:
                     output_file.write(last_buffer[0]+str(exon_num-1)+'\n'+last_buffer[1])
-                last_buffer = [line+";read_num=0;transcript_support=0;least_junction_reads_coverage=0;full_junction_reads_coverage=0;covered_junctions=0/",'']
+                last_buffer = [line+";read_num=0;transcript_support=0;least_junction_reads_coverage=0;full_chain_reads_coverage=0;covered_junctions=0/",'']
                 exon_num = 0
             else:
                 if len(last_buffer)>0:
@@ -280,23 +278,30 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
 
 def get_exon_junction_coverage(ref_exon_chain,chrom,ori):
     segs = ref_exon_chain.split('-')
-    if len(segs)==2:
-        return 10**10,10**10
+    #if len(segs)==2:
+        #return 10**10,10**10
     junctions=[]
     full_junct=''
-    for s in range(1,len(segs)-2,2):
-        junctions.append(segs[s]+','+segs[s+1])
-        full_junct+=(segs[s]+','+segs[s+1]+',')
-    full_junct=full_junct[:-1]
-  
-    
-    full_junction_coverage=full_exon_junction_counts.get(chrom+ori+full_junct,0)
+    if len(segs) > 2:
+        for s in range(0,len(segs)-1,2):
+            junctions.append(segs[s+1]+','+segs[s+2])
+            full_junct+=(segs[s]+','+segs[s+1]+',')
+        full_junct=full_junct[:-1]
+        print(chrom+ori+full_junct)
+        #print(full_exon_junction_counts.keys)
+        full_junction_coverage=full_exon_junction_counts.get(chrom+ori+full_junct,0)
+    else:
+        full_junct=segs[0]+','+segs[1]
+        full_junction_coverage=full_exon_junction_counts.get(chrom+ori+full_junct,0)
+        min_junction_coverage = 10**10
+        return full_junction_coverage,10**10
+
+    #this part is also when len(segs) > 2
     min_junction_coverage=10**10
     for j in junctions:
         key = chrom+ori+j
         
         if key in exon_junction_counts:
-            #print('there')
             min_junction_coverage=min(min_junction_coverage,exon_junction_counts[key])
     return full_junction_coverage,min_junction_coverage
 

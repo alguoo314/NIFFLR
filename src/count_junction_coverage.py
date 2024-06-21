@@ -1,3 +1,4 @@
+
 import argparse
 
 def parse_gff_for_transcripts(gff_file):
@@ -34,18 +35,23 @@ def generate_junction_chains(transcripts):
     full_junctions = {}
     for transcript_id, data in transcripts.items():
         exons = data['exons']
-        
+        def_info = exons[0][0]+exons[0][-1]
         #exons.sort(key=lambda x: x[1])  # Sort exons by start position
         if len(exons) < 2:
+            full_junc=str(exons[0][1])+","+ str(exons[0][2])
+            if def_info+full_junc in full_junctions:
+                full_junctions[def_info+full_junc]+= data['reads']
+            else:
+                full_junctions[def_info+full_junc]= data['reads']
             continue
 
-        def_info = exons[0][0]+exons[0][-1]
+        
 
         full_junc = "-".join("-".join([str(e) for e in exons[i]]) for i in range(1,len(exons)))
-        full_junc = str(exons[0][2])+'-'+full_junc
+        full_junc = str(exons[0][1])+"-"+ str(exons[0][2])+"-"+full_junc
         
         splitted = full_junc.split('-')
-        full_junc= ",".join(splitted[:-1])
+        full_junc= ",".join(splitted)
         
         if def_info+full_junc in full_junctions:
             full_junctions[def_info+full_junc]+= data['reads']

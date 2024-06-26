@@ -196,7 +196,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   gffread -F > $OUTPUT_PREFIX.sorted.gff && \
   python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
-  $MYPATH/filter_by_threshold.pl 0.002 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
+  $MYPATH/filter_by_threshold.pl 0.0025 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
   gffcompare -r $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff -o combine && \
   perl -F'\t' -ane '{
     if($F[2] eq "transcript"){
@@ -238,7 +238,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   }{
     if($F[2] eq "transcript"){
       $flag=0;
-      if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";.*\soId\s"(\S+)";.*read_num\s"(\S+)";.*full_junction_reads_coverage\s"(\S+)";/){
+      if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";.*\soId\s"(\S+)";.*read_num\s"(\S+)";.*full_chain_reads_coverage\s"(\S+)";/){
         $flag=1 if(not(defined($h{$1})) && ($5>3 || $avg_gap{$3}<2 || $max_gap{$3}<5));
       }
     }

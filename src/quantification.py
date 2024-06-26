@@ -287,7 +287,7 @@ def get_exon_junction_coverage(ref_exon_chain,chrom,ori):
             junctions.append(segs[s+1]+','+segs[s+2])
             full_junct+=(segs[s]+','+segs[s+1]+',')
         full_junct=full_junct[:-1]
-        print(chrom+ori+full_junct)
+        #print(chrom+ori+full_junct)
         #print(full_exon_junction_counts.keys)
         full_junction_coverage=full_exon_junction_counts.get(chrom+ori+full_junct,0)
     else:

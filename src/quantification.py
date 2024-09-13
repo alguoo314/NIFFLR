@@ -314,7 +314,7 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_le
     global intron_match_record
     coverages = []
     transcript_ids = []
-    
+    ref_lens = []
     if single_exon:
         left = assembled_exon_chain[0]
         right = assembled_exon_chain[1]
@@ -323,6 +323,7 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_le
             #sys.stderr.write(k+'    '+str(transcript_len)+'\n')
             if '-'+left in ref_exon_chain_record[k] or right+'-' in ref_exon_chain_record[k] or ref_exon_chain_record[k].split('-')==assembled_exon_chain:
                 coverages.append(coverage_record[k])
+                ref_lens.append(transcript_len)
                 transcript_ids.append(k)
                 transcript_support_info = transcript_support_record.get(k,[0,0,0])
                 if num_junc > transcript_support_info[0] or (num_junc == transcript_support_info[0] and end_pos > transcript_support_info[1]) or (num_junc == transcript_support_info[0] and end_pos == transcript_support_info[1] and max_read_len/transcript_len > transcript_support_info[2]):
@@ -335,6 +336,7 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_le
             transcript_len=ref_exon_chain_length_record[k]
             if assembled_exon_chain in ref_exon_chain_record[k]:
                 coverages.append(coverage_record[k])
+                ref_lens.append(transcript_len)
                 transcript_ids.append(k)
                 #sys.stderr.write(k+'    '+str(transcript_len)+'\n')
                 transcript_support_info = transcript_support_record.get(k,[0,0,0])
@@ -344,7 +346,14 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_le
                 
                 
     coverage_proportions = [num_reads*x / sum(coverages) for x in coverages]
+    #option 1: weighted by ref transcript length:
+    if sum(coverages) == len(coverages):
+        coverage_proportions = [num_reads*x /sum(ref_lens) for x in ref_lens]
+    #option 2: assign read to only the longest transcript
+    #if sum(coverages) == len(coverages):                                                                                             
+        #coverage_proportions = [float(num_reads) if x == max(ref_lens) else 0 for x in ref_lens]
 
+        
     for i in range(len(transcript_ids)):
         transcript_id = transcript_ids[i]
         if transcript_id in transcript_reads_record.keys():

@@ -86,14 +86,14 @@ e transcripts")
             chr_name,coord_starts,coord_ends,assembled_exon_chain,first_exon_end,num_reads,assembled_line_fields,assembled_line,single_exon,max_read_len,num_junc = process_assembled_transcript(assembled_line_fields)
             #now the pointer is at the next transcript of the assembled gtf file
             if first_transcript == False:
-                calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,transcript_len,max(coord_starts,coord_ends),num_junc)
+                calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,max(coord_starts,coord_ends),num_junc)
             
             prev_ref_line = ref_line
             
             ref_line_fields,ref_line,transcript_len = process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,chr_name,transcript_len)
             first_transcript = False
             if prev_ref_line != ref_line: #if the pointer for ref file moved
-                calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,transcript_len,max(coord_starts,coord_ends),num_junc)
+                calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,max(coord_starts,coord_ends),num_junc)
                 
             #now the pointer is at the next transcript of the ref gff file
         
@@ -308,7 +308,7 @@ def get_exon_junction_coverage(ref_exon_chain,chrom,ori):
             min_junction_coverage=min(min_junction_coverage,exon_junction_counts[key])
     return full_junction_coverage,min_junction_coverage
 
-def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,transcript_len,end_pos,num_junc): #end_pos is the position of the 3' end of the transcript
+def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_len,end_pos,num_junc): #end_pos is the position of the 3' end of the transcript
     global transcript_reads_record
     global transcript_support_record
     global intron_match_record
@@ -320,7 +320,7 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_le
         right = assembled_exon_chain[1]
         for k in ref_exon_chain_record.keys():
             transcript_len=ref_exon_chain_length_record[k]
-            sys.stderr.write(k+'    '+str(transcript_len)+'\n')
+            #sys.stderr.write(k+'    '+str(transcript_len)+'\n')
             if '-'+left in ref_exon_chain_record[k] or right+'-' in ref_exon_chain_record[k] or ref_exon_chain_record[k].split('-')==assembled_exon_chain:
                 coverages.append(coverage_record[k])
                 transcript_ids.append(k)
@@ -336,7 +336,7 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_le
             if assembled_exon_chain in ref_exon_chain_record[k]:
                 coverages.append(coverage_record[k])
                 transcript_ids.append(k)
-                sys.stderr.write(k+'    '+str(transcript_len)+'\n')
+                #sys.stderr.write(k+'    '+str(transcript_len)+'\n')
                 transcript_support_info = transcript_support_record.get(k,[0,0,0])
                 if num_junc > transcript_support_info[0] or (num_junc == transcript_support_info[0] and end_pos > transcript_support_info[1]) or (num_junc == transcript_support_info[0] and end_pos == transcript_support_info[1] and max_read_len/transcript_len > transcript_support_info[2]):
                     transcript_support_record[k]=[num_junc,end_pos,max_read_len/transcript_len]

@@ -351,7 +351,7 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_le
         coverage_proportions = [num_reads*x /sum(ref_lens) for x in ref_lens]
     #option 2: assign read to only the longest transcript
     #if sum(coverages) == len(coverages):                                                                                             
-        #coverage_proportions = [float(num_reads) if x == max(ref_lens) else 0 for x in ref_lens]
+        #coverage_proportions = [float(num_reads) if x == min(ref_lens) else 0 for x in ref_lens]
 
         
     for i in range(len(transcript_ids)):

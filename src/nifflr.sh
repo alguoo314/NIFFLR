@@ -43,7 +43,7 @@ function usage {
     echo "Options (default value in (), *required):"
     echo "-B, --bases double      For jf_aligner, filter base on percent of bases matching (35.0)"
     echo "-d, --discard           If supplied, all the intermediate files will be removed (False)"
-    echo "-f, --fasta string      *Path to the fasta/fastq file containing the reads, file can ge gzipped"
+    echo "-f, --fasta string      *Path to the fasta/fastq file containing the reads, file can ge gzipped, multiple files should be listed in single quotes e.g. 'file1.fastq file2.fastq'"
     echo "-r, --ref path          *Path to the fasta file containing the genome sequence"
     echo "-g, --gtf path          *Path to the GTF file for the genome annotation"
     echo "-m, --mer uint32        Mer size (12)"
@@ -140,10 +140,6 @@ fi
 
 if [ ! -s $REF ];then
 error_exit "The reference file does not exist. Please supply a valid reference fasta file.."
-fi
-
-if [ ! -s $INPUT_READS ];then
-error_exit "The input reads file does not exist. Please supply a valid fasta file containing the reads."
 fi
 
 if [ ! -e nifflr.exons_extraction.success ];then

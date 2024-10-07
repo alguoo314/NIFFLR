@@ -193,7 +193,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   python $MYPATH/count_junction_coverage.py -i $OUTPUT_PREFIX.sorted.gff -s $OUTPUT_PREFIX.exon_junction_counts.csv -c $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   $MYPATH/filter_by_threshold.pl 0.0025 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
-  gffcompare -r $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff -o combine && \
+  gffcompare -T -r $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff -o combine && \
   perl -F'\t' -ane '{
     if($F[2] eq "transcript"){
       if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";\sgene_name\s"(\S+)";.*\scmp_ref\s"(\S+)";\sclass_code\s"(\S)";/){
@@ -245,8 +245,11 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   }' | tee novel.gtf ) > output.asm.reads.assigned.filtered.gtf && \
   sort -S 20% -k1,1 -k4,4V -Vs output.asm.reads.assigned.filtered.gtf | \
   awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o /dev/stdout -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv > $OUTPUT_PREFIX.transcripts.reads.assigned.gff && \
-  awk -F '\t' '{if($3=="transcript"){n=split($9,a,";");for(i=1;i<=n;i++){if(a[i] ~ /^ID=/){id=substr(a[i],4);}else if(a[i] ~ /^read_num=/){if(substr(a[i],10)>=1){rn=substr(a[i],10);print id"\t"rn}}}}}' $OUTPUT_PREFIX.transcripts.reads.assigned.gff  > $OUTPUT_PREFIX.transcript_read_counts.txt && \
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o /dev/stdout -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv |
+  perl -F'\t' -ane 'BEGIN{$flag=0;}{if($F[2] eq "transcript"){$flag=1;if($F[8] =~/ID=(\S+);geneID=(\S+);gene_name=(\S+);read_num=(\S+);transcript_support=(\S+);least_junction_reads_coverage=(\S+);full_chain_reads_coverage=(\d+);covered_junctions=(\d+)\/(\d+)/){$flag=0 if($5<0.1 && $8==0 && $9>0);}}print if($flag);}'  > $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp && \
+  mv $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp $OUTPUT_PREFIX.transcripts.reads.assigned.gff && \
+  awk -F '\t' '{if($3=="transcript"){n=split($9,a,";");for(i=1;i<=n;i++){if(a[i] ~ /^ID=/){id=substr(a[i],4);}else if(a[i] ~ /^read_num=/){if(substr(a[i],10)>=1){rn=substr(a[i],10);print id"\t"rn}}}}}' $OUTPUT_PREFIX.transcripts.reads.assigned.gff  > $OUTPUT_PREFIX.transcript_read_counts.txt.tmp  && \
+  mv $OUTPUT_PREFIX.transcript_read_counts.txt.tmp $OUTPUT_PREFIX.transcript_read_counts.txt && \
   log "Assembled transcripts with coverage and read count information are in $OUTPUT_PREFIX.transcripts.reads.assigned.gff, transcript read counts are in $OUTPUT_PREFIX.transcript_read_counts.txt" && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"
 fi

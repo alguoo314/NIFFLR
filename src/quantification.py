@@ -242,7 +242,7 @@ def process_ref_transcript(ref_line,ref_line_fields,coord_starts,first_exon_end,
             elif cov_info== True and "cov=" not in field_8:
                 coverage = 1.0
                 cov_info = False
-                sys.stderr.write("Transcript Coverage is not provided in the input GTF file. Distributing reads equally within contained transcripts.\n")
+                #sys.stderr.write("Transcript Coverage is not provided in the input GTF file. Distributing reads equally within contained transcripts.\n")
             else:
                 coverage = float((field_8.split("cov=")[1]).split(";")[0])
             coverage_record[transcript_id] = coverage

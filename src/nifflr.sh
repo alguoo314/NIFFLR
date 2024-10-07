@@ -246,7 +246,23 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   sort -S 20% -k1,1 -k4,4V -Vs output.asm.reads.assigned.filtered.gtf | \
   awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o /dev/stdout -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv |
-  perl -F'\t' -ane 'BEGIN{$flag=0;}{if($F[2] eq "transcript"){$flag=1;if($F[8] =~/ID=(\S+);geneID=(\S+);gene_name=(\S+);read_num=(\S+);transcript_support=(\S+);least_junction_reads_coverage=(\S+);full_chain_reads_coverage=(\d+);covered_junctions=(\d+)\/(\d+)/){$flag=0 if($5<0.1 && $8==0 && $9>0);}}print if($flag);}'  > $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp && \
+  perl -F'\t' -ane 'BEGIN{
+    open(FILE,"'$OUTPUT_PREFIX'_uniq.loci");
+    while($line=<FILE>){
+      chomp($line);
+      @f=split(/\t/,$line);
+      @ff=split(/,/,$f[4]);
+      $h{$f[0]}=1 if(not($f[3] eq "-") && scalar(@ff)==1);
+    }
+  }{
+    if($F[2] eq "transcript"){
+      $flag=1;
+      if($F[8] =~/ID=(\S+);geneID=(\S+);gene_name=(\S+);read_num=(\S+);transcript_support=(\S+);least_junction_reads_coverage=(\S+);full_chain_reads_coverage=(\d+);covered_junctions=(\d+)\/(\d+)/){
+        $flag=0 if($5<0.25 && $8==0 && $9>0 && not(defined($h{$1})));
+      }
+    }
+    print if($flag);
+  }'  > $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp && \
   mv $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp $OUTPUT_PREFIX.transcripts.reads.assigned.gff && \
   awk -F '\t' '{if($3=="transcript"){n=split($9,a,";");for(i=1;i<=n;i++){if(a[i] ~ /^ID=/){id=substr(a[i],4);}else if(a[i] ~ /^read_num=/){if(substr(a[i],10)>=1){rn=substr(a[i],10);print id"\t"rn}}}}}' $OUTPUT_PREFIX.transcripts.reads.assigned.gff  > $OUTPUT_PREFIX.transcript_read_counts.txt.tmp  && \
   mv $OUTPUT_PREFIX.transcript_read_counts.txt.tmp $OUTPUT_PREFIX.transcript_read_counts.txt && \

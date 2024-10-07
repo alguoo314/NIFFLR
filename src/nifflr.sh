@@ -258,7 +258,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
     if($F[2] eq "transcript"){
       $flag=1;
       if($F[8] =~/ID=(\S+);geneID=(\S+);gene_name=(\S+);read_num=(\S+);transcript_support=(\S+);least_junction_reads_coverage=(\S+);full_chain_reads_coverage=(\d+);covered_junctions=(\d+)\/(\d+)/){
-        $flag=0 if($5<0.25 && $8==0 && $9>0 && not(defined($h{$1})));
+        $flag=0 if($5<0.5 && $8==0 && $9>0 && not(defined($h{$1})));
       }
     }
     print if($flag);

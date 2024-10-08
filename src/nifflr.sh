@@ -255,7 +255,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
     }
   }' | tee novel.gtf ) | \
   sort -S 20% -k1,1 -k4,4V -Vs | \
-  awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
+  awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread > $OUTPUT_PREFIX.sorted.ref.gff && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o /dev/stdout -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv |
   perl -F'\t' -ane '{
     if($F[2] eq "transcript"){
@@ -265,9 +265,10 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
       }
     }
     print if($flag);
-  }'  > $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp && \
-  mv $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp $OUTPUT_PREFIX.transcripts.reads.assigned.gff && \
-  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.transcripts.reads.assigned.gff -o /dev/stdout -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv > $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp && \
+  }'  | \
+  sort -S 20% -k1,1 -k4,4V -Vs | \
+  awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread > $OUTPUT_PREFIX.sorted.ref2.gff && \
+  python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref2.gff -o /dev/stdout -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv > $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp && \
   mv $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp $OUTPUT_PREFIX.transcripts.reads.assigned.gff && \
   awk -F '\t' '{if($3=="transcript"){n=split($9,a,";");for(i=1;i<=n;i++){if(a[i] ~ /^ID=/){id=substr(a[i],4);}else if(a[i] ~ /^read_num=/){if(substr(a[i],10)>=1){rn=substr(a[i],10);print id"\t"rn}}}}}' $OUTPUT_PREFIX.transcripts.reads.assigned.gff  > $OUTPUT_PREFIX.transcript_read_counts.txt.tmp  && \
   mv $OUTPUT_PREFIX.transcript_read_counts.txt.tmp $OUTPUT_PREFIX.transcript_read_counts.txt && \

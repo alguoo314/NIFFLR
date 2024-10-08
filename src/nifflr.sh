@@ -253,15 +253,15 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
       @ff=split(/;/,$F[8]);
       print join("\t",@F[0..7]),"\t",join(";",@ff[0..3]),"\n";
     }
-  }' | tee novel.gtf ) > output.asm.reads.assigned.filtered.gtf && \
-  sort -S 20% -k1,1 -k4,4V -Vs output.asm.reads.assigned.filtered.gtf | \
+  }' | tee novel.gtf ) | \
+  sort -S 20% -k1,1 -k4,4V -Vs | \
   awk -F '\t' '{if($3=="mRNA" || $3=="exon" || $3=="transcript") print $0}' |gffread -F > $OUTPUT_PREFIX.sorted.ref.gff && \
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.ref.gff -o /dev/stdout -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv |
   perl -F'\t' -ane '{
     if($F[2] eq "transcript"){
       $flag=1;
       if($F[8] =~/ID=(\S+);geneID=(\S+);gene_name=(\S+);read_num=(\S+);transcript_support=(\S+);least_junction_reads_coverage=(\S+);full_chain_reads_coverage=(\d+);covered_junctions=(\d+)\/(\d+)/){
-        $flag=0 if($5<0.9 && $8==0 && $9>0);
+        $flag=0 if($5<0.75 && $8==0 && $9>0);
       }
     }
     print if($flag);

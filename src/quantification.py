@@ -347,16 +347,17 @@ def calc_read_proportions(assembled_exon_chain,num_reads,single_exon,max_read_le
                 
     coverage_proportions = [num_reads*x / sum(coverages) for x in coverages]
     #option 1: weighted by ref transcript length:
-    #if sum(coverages) == len(coverages):
-    #    inverse_lens = [1 / (x + 0.000001) for x in ref_lens]
-    #    scaling_factor = num_reads / (sum(inverse_lens)+0.000001)
-    #    coverage_proportions = [scaling_factor * (1 / (x+0.000001)) for x in ref_lens]
+    if sum(coverages) == len(coverages):
+        inverse_lens = [1 / (x + 1) for x in ref_lens]
+        sum_inv_len=sum(inverse_lens)
+        coverage_proportions = [num_reads / (x+1) / sum_inv_len for x in ref_lens]
     #option 2: assign read to only the shortest transcript
     #if sum(coverages) == len(coverages):                                                                                             
     #    coverage_proportions = [float(num_reads) if x == min(ref_lens) else 0 for x in ref_lens]
     #option 3: proportional to the lengths
-    if sum(coverages) == len(coverages):
-        coverage_proportions = [num_reads*x /sum(ref_lens) for x in ref_lens]
+    #if sum(coverages) == len(coverages):
+    #    sum_len=sum(ref_lens)
+    #    coverage_proportions = [num_reads*x / sum_len for x in ref_lens]
 
         
     for i in range(len(transcript_ids)):

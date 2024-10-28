@@ -97,9 +97,9 @@ e transcripts")
                 
             #now the pointer is at the next transcript of the ref gff file
         
-        if len(pre_output_text) > 2000: #keep the size of the dict small
+        if len(pre_output_text) > 6000: #keep the size of the dict small
             it = 0
-            while it < 1900:
+            while it < 1000:
                 k,v =pre_output_text.popitem(last=False)
                 intron_matched_frac=intron_match_record.pop(k,[0,0,0,0])
                 read_num=round(transcript_reads_record.pop(k,0),3)

@@ -6,7 +6,7 @@ INPUT_GTF="input.gtf"
 INPUT_READS="reads.fasta"
 REF="reference.fasta"
 OUTPUT_PREFIX="output"
-DISCARD_INTERM=false
+KEEP_INTERM=0
 QUANT=false
 JF_THREADS=16
 BASES=35
@@ -42,7 +42,7 @@ function usage {
     echo "Options:"
     echo "Options (default value in (), *required):"
     echo "-B, --bases double      For jf_aligner, filter base on percent of bases matching (35.0)"
-    echo "-d, --discard           If supplied, all the intermediate files will be removed (False)"
+    echo "-k, --keep              If set, all the intermediate files will be kept"
     echo "-f, --fasta string      *Path to the fasta/fastq file containing the reads, file can ge gzipped, multiple files should be listed in single quotes e.g. 'file1.fastq file2.fastq'"
     echo "-r, --ref path          *Path to the fasta file containing the genome sequence"
     echo "-g, --gtf path          *Path to the GTF file for the genome annotation"
@@ -87,8 +87,9 @@ do
             export OUTPUT_PREFIX="$2"
             shift
             ;;
-        -d|--discard)
-	    export DISCARD_INTERM=true;
+        -k|--keep)
+	    export KEEP_INTERM=1;
+            echo "Will keep intermediate files"
 	    shift
             ;;
 	-t|--threads)
@@ -184,6 +185,7 @@ fi
 if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success ];then
   log "Performing filtering and quantification of assembled transcripts" && \
   gffcompare -STC $OUTPUT_PREFIX.gtf $INPUT_GTF -o ${OUTPUT_PREFIX}_uniq 1>gffcmp.out 2>&1 && \
+  rm -f ${OUTPUT_PREFIX}_uniq.{redundant.gtf,stats,tracking} &&\
   perl -F'\t' -ane 'BEGIN{
     open(FILE,"'$OUTPUT_PREFIX'_uniq.loci");
     while($line=<FILE>){
@@ -197,6 +199,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
     print join("\t",@F) if(defined($h{$gene_id}));
   }'  ${OUTPUT_PREFIX}_uniq.combined.gtf > ${OUTPUT_PREFIX}_uniq.combined.both.gtf && \
   gffcompare -STC $OUTPUT_PREFIX.gtf ${OUTPUT_PREFIX}_uniq.combined.both.gtf -o $OUTPUT_PREFIX 1>gffcmp.out 2>&1 && \
+  rm -rf $OUTPUT_PREFIX.{redundant.gtf,stats,loci,tracking} && \
   sort -S 20% -k1,1 -k4,4V -Vs $OUTPUT_PREFIX.combined.gtf | gffread -F > $OUTPUT_PREFIX.sorted.combined.gff && \
   sort -S 20% -k1,1 -k4,4V -Vs $OUTPUT_PREFIX.all.gtf | \
   tee >(awk '!/^#/ && !seen[$1]++ {print $1}' > chr_names.txt) |\
@@ -205,6 +208,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   python $MYPATH/quantification.py -a $OUTPUT_PREFIX.sorted.gff -r $OUTPUT_PREFIX.sorted.combined.gff -o $OUTPUT_PREFIX.asm.reads.assigned.gff -c chr_names.txt --single_junction_coverage $OUTPUT_PREFIX.exon_junction_counts.csv --full_junction_coverage $OUTPUT_PREFIX.full_exon_junction_counts.csv && \
   $MYPATH/filter_by_threshold.pl 0.0025 < $OUTPUT_PREFIX.asm.reads.assigned.gff >  $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff && \
   gffcompare -T -r $INPUT_GTF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff -o combine && \
+  rm -f combine.{tracking,loci,stats} && \
   perl -F'\t' -ane '{
     if($F[2] eq "transcript"){
       if($F[8] =~/transcript_id\s"(\S+)";\sgene_id\s"(\S+)";\sgene_name\s"(\S+)";.*\scmp_ref\s"(\S+)";\sclass_code\s"(\S)";/){
@@ -272,13 +276,15 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   mv $OUTPUT_PREFIX.transcripts.reads.assigned.gff.tmp $OUTPUT_PREFIX.transcripts.reads.assigned.gff && \
   awk -F '\t' '{if($3=="transcript"){n=split($9,a,";");for(i=1;i<=n;i++){if(a[i] ~ /^ID=/){id=substr(a[i],4);}else if(a[i] ~ /^read_num=/){if(substr(a[i],10)>=1){rn=substr(a[i],10);print id"\t"rn}}}}}' $OUTPUT_PREFIX.transcripts.reads.assigned.gff  > $OUTPUT_PREFIX.transcript_read_counts.txt.tmp  && \
   mv $OUTPUT_PREFIX.transcript_read_counts.txt.tmp $OUTPUT_PREFIX.transcript_read_counts.txt && \
-  log "Assembled transcripts with coverage and read count information are in $OUTPUT_PREFIX.transcripts.reads.assigned.gff, transcript read counts are in $OUTPUT_PREFIX.transcript_read_counts.txt" && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"
 fi
 
 
-if [ -e nifflr.count.success ];then
-  log "Assembled transcripts and quantifications are in $OUTPUT_PREFIX.asm.reads.assigned.filtered.gff"
+if [ -e nifflr.quantification.success ];then
+  log "Assembled transcripts with coverage and read count information are in $OUTPUT_PREFIX.transcripts.reads.assigned.gff, transcript read counts are in $OUTPUT_PREFIX.transcript_read_counts.txt" && \
+  if [ $KEEP_INTERM -lt 1 ];then
+    rm -f ${OUTPUT_PREFIX}_uniq.{combined.gtf,combined.both.gtf,loci} gffcmp.out ${OUTPUT_PREFIX}.{stats.txt,combined.gtf,sorted.combined.gff,sorted.gff,exon_junction_counts.csv,asm.reads.assigned.gff,asm.reads.assigned.prelim.gff,transcripts_identified.txt,sorted.ref.gff,sorted.ref2.gff,exon_junction_counts.csv,full_exon_junction_counts.csv} novel.gtf known.gtf combine.annotated.gtf chr_names.txt scores.csv 
+  fi
 fi
 
 

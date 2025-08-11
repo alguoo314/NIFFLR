@@ -50,7 +50,7 @@ def extract_exon_seq(seq_dict,gff_file,gtf_file,output_file):
                     elif "gene_id" in row[8]:
                         gene_name = row[8].split(sep="gene_id=")[1].split(sep=";")[0]
                     else:
-                        sys.stderr.write("INVALID GTF FORMAT? It is recommended to clean up your GTF file so that the third field is transcript,mRNA,or exon, and the ninth field of transcript or mRNA entries contain the gene info (in format of gene, gene_name or geneID).")
+                        sys.stderr.write("INVALID GFF FORMAT? It is recommended to clean up your GFF file so that the third field is transcript,mRNA, or exon, and the ninth field of transcript or mRNA entries contain the gene info (in format of gene, gene_name or geneID).")
                         sys.stderr.write(row)
                         return
                     prev_gene_name=gene_name
@@ -96,7 +96,7 @@ def extract_exon_seq(seq_dict,gff_file,gtf_file,output_file):
                     elif "gene_id" in row[8]:
                         gene_name = row[8].split(sep="gene_id ")[1].split(sep=";")[0]
                     else:
-                        sys.stderr.write("INVALID GFF FORMAT? It is recommended to clean up your GFF file so that the third field is transcript,mRNA,or exon, and the ninth field of transcript or mRNA entries contain the gene info (in the format of gene, gene_name or geneID).")
+                        sys.stderr.write("INVALID GTF FORMAT? It is recommended to clean up your GTF file so that the third field is transcript,mRNA, or exon, and the ninth field of transcript or mRNA entries contain the gene info (in the format of gene, gene_name or geneID).")
                         sys.stderr.write(row)
                         return
                     gene_name =	gene_name.replace("\"","")

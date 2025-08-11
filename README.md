@@ -1,5 +1,15 @@
 # NIFFLR: Novel IsoForm Finder using Long RNASeq reads
 
+# Compilation Dependencies
+To successfully compile NIFFLR, make sure the following development libraries are installed on your system:
+
+Boost development libraries (e.g., libboost-all-dev on Ubuntu/Debian)
+zlib development libraries (e.g., zlib1g-dev on Ubuntu/Debian)
+
+For example, on Ubuntu/Debian, run:
+sudo apt-get update
+sudo apt-get install libboost-all-dev zlib1g-dev
+
 # Installation insructions
 
 To install, first download the latest distribution from the github release page https://github.com/alekseyzimin/jf_aligner/releases. Then untar/unzip the package nifflr-X.X.X.tgz, cd to the resulting folder and run `./install.sh`.  The installation script will configure and make all necessary packages.  The nifflr.sh executable will appear under bin/
@@ -39,3 +49,4 @@ Options (default value in (), *required):
 -h, --help              This message
 -v, --verbose           Verbose mode (False)
 ```
+

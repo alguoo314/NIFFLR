@@ -105,8 +105,8 @@ def extract_exon_seq(seq_dict,gff_file,gtf_file,output_file):
                     
                 if "exon" in row[2]: 
                     seq_name =  row[0]
-                    if no_transcript_lines == False and seq_name not in seq_dict.keys():
-                        continue
+                    # if no_transcript_lines == False and seq_name not in seq_dict.keys():
+                    #     continue
                     direction = row[6]
                     start = int(row[3])
                     end=int(row[4])

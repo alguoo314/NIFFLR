@@ -61,6 +61,13 @@ e transcripts")
     first_transcript = True
     assembled_line_fields = assembled_line.split('\t')
     ref_line_fields = ref_line.split('\t')
+    if len(ref_line_fields) < 9:
+        sys.stderr.write(f"FAILURE: The reference GFF file does not have nine columns")
+        return
+    if ';' not in ref_line_fields[8]:
+        sys.stderr.write(f"FAILURE: The last (9th) column of the reference GFF file is not ; delimited for transcript information")
+        return
+    
     assembled_exon_chain = ""
     global ref_exon_chain_record
     ref_exon_chain_record = {}

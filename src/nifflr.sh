@@ -90,7 +90,6 @@ do
         -k|--keep)
 	    export KEEP_INTERM=1;
             echo "Will keep intermediate files"
-	    shift
             ;;
 	-t|--threads)
             export JF_THREADS="$2"

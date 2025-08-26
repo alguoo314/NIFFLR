@@ -144,7 +144,7 @@ fi
 
 if [ ! -e nifflr.exons_extraction.success ];then
   log "Extracting exons from the transcripts" && \
-  python $MYPATH/create_exon_fasta.py -r $REF --gtf $INPUT_GTF -o $OUTPUT_PREFIX.exons.fna  && \
+  python $MYPATH/create_exon_fasta.py -r $REF --gtf <(gffread -T $INPUT_GTF) -o $OUTPUT_PREFIX.exons.fna  && \
   rm -f nifflr.alignment.success && \
   touch nifflr.exons_extraction.success || error_exit "exon extraction failed"
 fi

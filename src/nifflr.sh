@@ -190,8 +190,9 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
     while($line=<FILE>){
       chomp($line);
       @f=split(/\t/,$line);
-      @ff=split(/,/,$f[4]);
-      $h{$f[0]}=1 if(not($f[3] eq "-") && scalar(@ff)==1);
+      @ff1=split(/,/,$f[3]);
+      @ff2=split(/,/,$f[4]);
+      $h{$f[0]}=1 if(not($f[3] eq "-") && scalar(@ff1)==1 && scalar(@ff2)==1);
     }
   }{
     $gene_id=$1 if($F[8] =~ /gene_id "(\S+)"/); 
@@ -217,7 +218,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
       }
     }
   }' < combine.annotated.gtf > $OUTPUT_PREFIX.transcripts_identified.txt && \
-  cat <(perl -F'\t' -ane 'BEGIN{
+  cat <(gffread -T $INPUT_GTF | perl -F'\t' -ane 'BEGIN{
     open(FILE,"'$OUTPUT_PREFIX'.transcripts_identified.txt");
     while($line=<FILE>){
       chomp($line);
@@ -230,7 +231,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
       $flag=1 if(defined($h{$1}));
     }
   }print if($flag);
-  }' $INPUT_GTF | tee known.gtf ) \
+  }' | tee known.gtf ) \
   <( gffread -TF $OUTPUT_PREFIX.asm.reads.assigned.prelim.gff| \
   perl -F'\t' -ane 'BEGIN{
     open(FILE,"'$OUTPUT_PREFIX'.stats.txt");

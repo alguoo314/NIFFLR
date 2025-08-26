@@ -2,23 +2,28 @@
 #this code reads the number of reads in  each transcript from output.gtf and then quantifies each reference transcript in the output of trmap
 #assumes input of "trmap -c '=c' output.combined.gtf output.gtf" on STDIN
 my $all_gtf=$ARGV[0];
+my $max_avg_penalty=$ARGV[1];
+my $max_max_penalty=$ARGV[2];
 my %num_reads=();
 my %junctions=();
 my %read_counts=();
 my $qry_transcript;
 my @intron_chain=();
 my $exons=();
+my %unique_refs=();
 
 open(FILE,$all_gtf);
 while($line=<FILE>){
   chomp($line);
   @f=split(/\t/,$line);
   if($f[2] eq "transcript"){
-    if($f[8] =~ /^gene_id "(\S+)"; transcript_id "(\S+)"; source_reads "(\S+)"/){
+    if($f[8] =~ /^gene_id "(\S+)"; transcript_id "(\S+)"; source_reads "(\S+)"; longest_mapped_read_len "(\S+)"; best_matched_reads_avg_penality_score "(\S+)"; best_matched_reads_max_penality_score "(\S+)";/){
       $gene=$1;
       $transcript=$2;
       @reads=split(/,/,$3);
-      $num_reads{$transcript}=scalar(@reads);
+      $avg_penalty=$5;
+      $max_penalty=$6;
+      $num_reads{$transcript}=scalar(@reads) if($avg_penalty<$max_avg_penalty || $max_penalty < $max_max_penalty);
     }
   }
 }
@@ -28,7 +33,7 @@ while($line=<STDIN>){
   chomp($line);
   if($line=~/^>/){
     #print "$line\n";
-    process_matches(@match_lines) if(scalar(@match_lines)>0);
+    process_matches(@match_lines) if(scalar(@match_lines)>0 && $num_reads{$qry_transcript}>0);
     @f=split(/\s/,$line);
     $qry_transcript=substr($f[0],1);
     @intron_chain=split(/,/,$f[-1]);
@@ -43,6 +48,7 @@ foreach $t(keys %read_counts){
   foreach $c(@{$junctions{$t}}){
     $min_count=$c if($c< $min_count);
   }
+  $min_count=-1 if($min_count == 1000000000);
   print "transcript $t exons $exons{$t} reads $read_counts{$t} min_count $min_count junction_counts ",join(" ",@{$junctions{$t}}),"\n";
 }
 
@@ -99,13 +105,12 @@ sub process_matches{
     foreach $m (@matches){
       @f=split(/\t/,$m);
       my $ref_name=$f[5];
+      print "unique_ref $ref_name\n" if(scalar(@matches)==1 && $num_matches==1 && scalar(@intron_chain)>1);
       if(defined($matched_ref{$ref_name})){
         #print "DEBUG updating $ref_name $exons{$ref_name} ",join(" ",@{$junctions{$ref_name}}),"\n";
         $read_counts{$ref_name}+=$num_reads{$qry_transcript}/$num_matches;
       }
     }
-  }else{
-    print "unmatched $qry_transcript\n";
   }
 }
 

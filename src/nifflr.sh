@@ -201,7 +201,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   rm -f ${OUTPUT_PREFIX}.combine.{loci,tracking} &&\
   gffread -T $OUTPUT_PREFIX.known.gtf <(gffread --nids <(perl -F'\t' -ane '{print "$1\n" if($F[8] =~ /transcript_id "(\S+)";(.+) class_code "(c|=)";/);}' $OUTPUT_PREFIX.combine.annotated.gtf) $OUTPUT_PREFIX.novel.gtf ) > $OUTPUT_PREFIX.transcripts.gtf.tmp && \
   mv $OUTPUT_PREFIX.transcripts.gtf.tmp $OUTPUT_PREFIX.transcripts.gtf && \
-  trmap -c '=c' ${OUTPUT_PREFIX}.transcripts.gtf $OUTPUT_PREFIX.fix.gtf | quantify.pl $OUTPUT_PREFIX.gtf | grep -v "^unmatched" > $OUTPUT_PREFIX.quantify_transcripts.txt.tmp && \
+  trmap -c '=c' ${OUTPUT_PREFIX}.transcripts.gtf $OUTPUT_PREFIX.fix.gtf | quantify.pl $OUTPUT_PREFIX.gtf | grep -v "^unique_ref" > $OUTPUT_PREFIX.quantify_transcripts.txt.tmp && \
   mv $OUTPUT_PREFIX.quantify_transcripts.txt.tmp $OUTPUT_PREFIX.quantify_transcripts.txt && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"
 fi

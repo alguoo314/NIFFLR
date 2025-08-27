@@ -2,8 +2,6 @@
 #this code reads the number of reads in  each transcript from output.gtf and then quantifies each reference transcript in the output of trmap
 #assumes input of "trmap -c '=c' output.combined.gtf output.gtf" on STDIN
 my $all_gtf=$ARGV[0];
-my $max_avg_penalty=$ARGV[1];
-my $max_max_penalty=$ARGV[2];
 my %num_reads=();
 my %junctions=();
 my %read_counts=();
@@ -17,13 +15,11 @@ while($line=<FILE>){
   chomp($line);
   @f=split(/\t/,$line);
   if($f[2] eq "transcript"){
-    if($f[8] =~ /^gene_id "(\S+)"; transcript_id "(\S+)"; source_reads "(\S+)"; longest_mapped_read_len "(\S+)"; best_matched_reads_avg_penality_score "(\S+)"; best_matched_reads_max_penality_score "(\S+)";/){
+    if($f[8] =~ /^gene_id "(\S+)"; transcript_id "(\S+)"; source_reads "(\S+)";/){
       $gene=$1;
       $transcript=$2;
       @reads=split(/,/,$3);
-      $avg_penalty=$5;
-      $max_penalty=$6;
-      $num_reads{$transcript}=scalar(@reads) if($avg_penalty<$max_avg_penalty || $max_penalty < $max_max_penalty);
+      $num_reads{$transcript}=scalar(@reads);
     }
   }
 }
@@ -56,6 +52,8 @@ sub process_matches{
   my @matches=@_;
   my $num_matches=0;
   my %matched_ref=();
+  my @cf=split(/-/,$intron_chain[0]);
+  my @cl=split(/-/,$intron_chain[-1]);
   #print "DEBUG processing matches for $qry_transcript \n",join(",",@intron_chain),"\n",join("\n",@matches),"\n";
   foreach $m (@matches){
     @f=split(/\t/,$m);
@@ -66,17 +64,11 @@ sub process_matches{
     my $match_start=-1;
     for($i=0;$i<=$#ref_intron_chain-$#intron_chain;$i++){
       #print "DEBUG $i $ref_intron_chain[$i] $intron_chain[$i]\n";
-      if($ref_intron_chain[$i] eq $intron_chain[0]){
-	$ic_match++;
+      @crf=split(/-/,$ref_intron_chain[$i]);
+      @crl=split(/-/,$ref_intron_chain[$i+$#intron_chain]);
+      if($cf[0]-$crf[0]<10 && $crf[1]==$cf[1] && $crl[0]==$cl[0] && $crl[1]-$cl[1]<10){
+	$ic_match=scalar(@intron_chain);
 	$match_start=$i;
-	for($j=1;$j<=$#intron_chain;$j++){
-	  if($ref_intron_chain[$i+$j] eq $intron_chain[$j]){
-	    $ic_match++;
-	  }else{
-	    $match_start=-1;
-	    last;
-	  }
-	}
       }
     }
     if($ic_match==scalar(@intron_chain)){
@@ -86,7 +78,7 @@ sub process_matches{
       if(scalar(@intron_chain)>1){
         if(defined($junctions{$ref_name})){
 	  for($i=$match_start;$i<$match_start+$ic_match-1;$i++){
-	    $junctions{$ref_name}->[$i]++;
+	    $junctions{$ref_name}->[$i]+=$num_reads{$qry_transcript};
 	  }
         }else{
 	  my @arr=();
@@ -94,11 +86,12 @@ sub process_matches{
 	    push(@arr,0);
 	  }
 	  for($i=$match_start;$i<$match_start+$ic_match-1;$i++){
-	    $arr[$i]++;
+	    $arr[$i]+=$num_reads{$qry_transcript};
 	  }
 	  $junctions{$ref_name}=\@arr;
         }
       }
+      #print "DEBUG updated junctions to ",join(" ",@{$junctions{$ref_name}}),"\n";
     }
   }
   if($num_matches>0){

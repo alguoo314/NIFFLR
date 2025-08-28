@@ -185,8 +185,10 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   log "Performing filtering and quantification of assembled transcripts" && \
   #first we figure out which reference transcripts are present
   #fixing junctions
-  gffread --tlf $INPUT_GTF | fix_junctions.pl $OUTPUT_PREFIX.gtf |gffread -M -T > $OUTPUT_PREFIX.fix.gtf && \
-  gffread --tlf $INPUT_GTF | fix_junctions.pl <(perl -F'\t' -ane '{if($F[8] =~ /^gene_id "(\S+)"; transcript_id "(\S+)"; source_reads "(\S+)"; longest_mapped_read_len "(\S+)"; best_matched_reads_avg_penality_score "(\S+)"; best_matched_reads_max_penality_score "(\S+)";/){$flag=($5<2 ||$6<5) ? 1 : 0;}print if($flag);}' $OUTPUT_PREFIX.gtf) |gffread -M -T > $OUTPUT_PREFIX.fix.filter.gtf && \
+  gffread --tlf $INPUT_GTF | fix_junctions.pl $OUTPUT_PREFIX.gtf |gffread -M -T > $OUTPUT_PREFIX.fix.gtf.tmp && \
+  mv $OUTPUT_PREFIX.fix.gtf.tmp $OUTPUT_PREFIX.fix.gtf && \
+  gffread --tlf $INPUT_GTF | fix_junctions.pl <(perl -F'\t' -ane '{if($F[8] =~ /^gene_id "(\S+)"; transcript_id "(\S+)"; source_reads "(\S+)"; longest_mapped_read_len "(\S+)"; best_matched_reads_avg_penality_score "(\S+)"; best_matched_reads_max_penality_score "(\S+)";/){$flag=($5<2 ||$6<5) ? 1 : 0;}print if($flag);}' $OUTPUT_PREFIX.gtf) |gffread -M -T > $OUTPUT_PREFIX.fix.filter.gtf.tmp && \
+  mv $OUTPUT_PREFIX.fix.filter.gtf.tmp $OUTPUT_PREFIX.fix.filter.gtf && \
   trmap -c '=c' $INPUT_GTF $OUTPUT_PREFIX.fix.gtf | quantify.pl $OUTPUT_PREFIX.gtf  > $OUTPUT_PREFIX.quantify_ref.txt.tmp && \
   mv $OUTPUT_PREFIX.quantify_ref.txt.tmp $OUTPUT_PREFIX.quantify_ref.txt && \
   perl -ane '{$h{$F[1]}=1 if($F[7] > 0 || ($F[7] ==-1 && $F[5]>3)||$F[0] eq "unique_ref");}END{open(FILE,"gffread -T '$INPUT_GTF' | ");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_ref.txt > $OUTPUT_PREFIX.known.gtf.tmp && \
@@ -210,7 +212,7 @@ fi
 if [ -e nifflr.quantification.success ];then
   log "Assembled transcripts are in $OUTPUT_PREFIX.transcripts.gtf, transcript read counts are in $OUTPUT_PREFIX.quantify_transcripts.txt" && \
   if [ $KEEP_INTERM -lt 1 ];then
-    rm -f ${OUTPUT_PREFIX}_uniq.{combined.gtf,combined.both.gtf,loci} gffcmp.out ${OUTPUT_PREFIX}.{stats.txt,combined.gtf,sorted.combined.gff,sorted.gff,exon_junction_counts.csv,asm.reads.assigned.gff,asm.reads.assigned.prelim.gff,transcripts_identified.txt,sorted.ref.gff,sorted.ref2.gff,exon_junction_counts.csv,full_exon_junction_counts.csv} novel.gtf known.gtf combine.annotated.gtf chr_names.txt scores.csv 
+    rm -f $OUTPUT_PREFIX.fix.gtf $OUTPUT_PREFIX.fix.filter.gtf $OUTPUT_PREFIX.quantify_ref.txt $OUTPUT_PREFIX.known.gtf $OUTPUT_PREFIX.quantify_novel.txt $OUTPUT_PREFIX.combine.annotated.gtf 
   fi
 fi
 

@@ -1,6 +1,6 @@
 # MaSurCA version
 NAME=nifflr
-VERSION = 1.0.2
+VERSION = 2.0.0
 NCPU = $(shell grep -c '^processor' /proc/cpuinfo 2>/dev/null || sysctl hw.ncpu 2>/dev/null || echo 1)
 
 # Component versions

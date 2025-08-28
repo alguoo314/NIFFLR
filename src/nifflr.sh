@@ -194,7 +194,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   perl -ane '{$h{$F[1]}=1 if($F[7] > 0 || ($F[7] ==-1 && $F[5]>3)||$F[0] eq "unique_ref");}END{open(FILE,"gffread -T '$INPUT_GTF' | ");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_ref.txt > $OUTPUT_PREFIX.known.gtf.tmp && \
   mv $OUTPUT_PREFIX.known.gtf.tmp $OUTPUT_PREFIX.known.gtf && \
   gffcompare -STC $OUTPUT_PREFIX.fix.filter.gtf -o ${OUTPUT_PREFIX}_combine 1>gffcmp.out 2>&1 && \
-  rm -f ${OUTPUT_PREFIX}_combine.{redundant.gtf,stats,tracking} &&\
+  rm -f ${OUTPUT_PREFIX}_combine.{redundant.gtf,stats,tracking,loci} &&\
   trmap -c '=c' ${OUTPUT_PREFIX}_combine.combined.gtf $OUTPUT_PREFIX.fix.gtf | quantify.pl $OUTPUT_PREFIX.gtf > $OUTPUT_PREFIX.quantify_novel.txt.tmp && \
   mv $OUTPUT_PREFIX.quantify_novel.txt.tmp $OUTPUT_PREFIX.quantify_novel.txt && \
   perl -ane '{$h{$F[1]}=1 if($F[7] > 2);}END{open(FILE,"'${OUTPUT_PREFIX}'_combine.combined.gtf");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_novel.txt > $OUTPUT_PREFIX.novel.gtf.tmp && \
@@ -203,16 +203,16 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   rm -f ${OUTPUT_PREFIX}.combine.{loci,tracking} &&\
   gffread -T $OUTPUT_PREFIX.known.gtf <(gffread --nids <(perl -F'\t' -ane '{print "$1\n" if($F[8] =~ /transcript_id "(\S+)";(.+) class_code "(c|=)";/);}' $OUTPUT_PREFIX.combine.annotated.gtf) $OUTPUT_PREFIX.novel.gtf ) > $OUTPUT_PREFIX.transcripts.gtf.tmp && \
   mv $OUTPUT_PREFIX.transcripts.gtf.tmp $OUTPUT_PREFIX.transcripts.gtf && \
-  trmap -c '=c' ${OUTPUT_PREFIX}.transcripts.gtf $OUTPUT_PREFIX.fix.gtf | quantify.pl $OUTPUT_PREFIX.gtf | grep -v "^unique_ref" > $OUTPUT_PREFIX.quantify_transcripts.txt.tmp && \
-  mv $OUTPUT_PREFIX.quantify_transcripts.txt.tmp $OUTPUT_PREFIX.quantify_transcripts.txt && \
+  trmap -c '=c' ${OUTPUT_PREFIX}.transcripts.gtf $OUTPUT_PREFIX.fix.gtf | quantify.pl $OUTPUT_PREFIX.gtf | grep -v "^unique_ref" > $OUTPUT_PREFIX.quantify.txt.tmp && \
+  mv $OUTPUT_PREFIX.quantify.txt.tmp $OUTPUT_PREFIX.quantify.txt && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"
 fi
 
 
 if [ -e nifflr.quantification.success ];then
-  log "Assembled transcripts are in $OUTPUT_PREFIX.transcripts.gtf, transcript read counts are in $OUTPUT_PREFIX.quantify_transcripts.txt" && \
+  log "Assembled transcripts are in $OUTPUT_PREFIX.transcripts.gtf, transcript read counts are in $OUTPUT_PREFIX.quantify.txt" && \
   if [ $KEEP_INTERM -lt 1 ];then
-    rm -f $OUTPUT_PREFIX.fix.gtf $OUTPUT_PREFIX.fix.filter.gtf $OUTPUT_PREFIX.quantify_ref.txt $OUTPUT_PREFIX.known.gtf $OUTPUT_PREFIX.quantify_novel.txt $OUTPUT_PREFIX.combine.annotated.gtf 
+    rm -f $OUTPUT_PREFIX.fix.gtf $OUTPUT_PREFIX.fix.filter.gtf $OUTPUT_PREFIX.quantify_ref.txt $OUTPUT_PREFIX.known.gtf $OUTPUT_PREFIX.quantify_novel.txt $OUTPUT_PREFIX.combine.annotated.gtf gffcmp.out $OUTPUT_PREFIX.combine ${OUTPUT_PREFIX}_combine.combined.gtf $OUTPUT_PREFIX.novel.gtf
   fi
 fi
 

@@ -115,10 +115,6 @@ if [ ! -s $MYPATH/create_exon_fasta.py ];then
 error_exit "create_exon_fasta.py not found in $MYPATH. It must be in the directory as this script"
 fi
 
-if [ ! -s $MYPATH/add_read_counts.py ];then
-error_exit "add_read_counts.py not found in $MYPATH. It must be in the directory as this script"
-fi
-
 if [ ! -s $MYPATH/majority_vote.py ];then
 error_exit "majority_vote.py not found in $MYPATH. It must be in the directory as this script"
 fi
@@ -129,10 +125,6 @@ fi
 
 if [ ! -s $MYPATH/generate_gtf.py ];then
 error_exit "generate_gtf.py not found in $MYPATH. It must be in the directory as this script"
-fi
-
-if [ "$QUANT" = true ] && [ ! -s $MYPATH/quantification.py ];then
-error_exit "quantification.py not found in $MYPATH but the --quantification switch is provided by the user"
 fi
 
 if [ ! -s $INPUT_GTF ];then

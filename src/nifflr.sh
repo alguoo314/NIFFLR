@@ -188,7 +188,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   mv $OUTPUT_PREFIX.known.gtf.tmp $OUTPUT_PREFIX.known.gtf && \
   gffcompare -STC $OUTPUT_PREFIX.fix.filter.gtf -o ${OUTPUT_PREFIX}_combine 1>gffcmp.out 2>&1 && \
   rm -f ${OUTPUT_PREFIX}_combine.{redundant.gtf,stats,tracking,loci} &&\
-  trmap -c '=c' ${OUTPUT_PREFIX}_combine.combined.gtf $OUTPUT_PREFIX.fix.gtf | quantify.pl $OUTPUT_PREFIX.gtf > $OUTPUT_PREFIX.quantify_novel.txt.tmp && \
+  trmap -c '=c' ${OUTPUT_PREFIX}_combine.combined.gtf $OUTPUT_PREFIX.fix.filter.gtf | quantify.pl $OUTPUT_PREFIX.gtf > $OUTPUT_PREFIX.quantify_novel.txt.tmp && \
   mv $OUTPUT_PREFIX.quantify_novel.txt.tmp $OUTPUT_PREFIX.quantify_novel.txt && \
   perl -ane '{$h{$F[1]}=1 if($F[7] > 2);}END{open(FILE,"'${OUTPUT_PREFIX}'_combine.combined.gtf");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_novel.txt > $OUTPUT_PREFIX.novel.gtf.tmp && \
   mv $OUTPUT_PREFIX.novel.gtf.tmp $OUTPUT_PREFIX.novel.gtf && \

@@ -38,20 +38,21 @@ function error_exit {
 }
 
 function usage {
+    echo "NIFFLR version 2.0.0"
     echo "Usage: nifflr.sh [options]"
     echo "Options:"
     echo "Options (default value in (), *required):"
-    echo "-B, --bases double      For jf_aligner, filter base on percent of bases matching (35.0)"
-    echo "-k, --keep              If set, all the intermediate files will be kept"
-    echo "-f, --fasta string      *Path to the fasta/fastq file containing the reads, file can ge gzipped, multiple files should be listed in single quotes e.g. 'file1.fastq file2.fastq'"
-    echo "-r, --ref path          *Path to the fasta file containing the genome sequence"
-    echo "-g, --gtf path          *Path to the GTF file for the genome annotation"
-    echo "-m, --mer uint32        Mer size (12)"
-    echo "-p, --prefix string     Prefix of the output files (output)"
-    echo "-t, --threads uint16    Number of threads (16)"
-    echo "-e, --allowed_exon_gap_or_overlap uint16   Threshold for the allowed bases of gaps or overlaps between two adjacent exons in mapped reads for building a valid  transcript (15)"
-    echo "-h, --help              This message"
-    echo "-v, --verbose           Verbose mode (False)"
+    echo "-B, --bases double                      minimum percentage of exon bases matching (35.0)"
+    echo "-m, --mer int                           alignment K-mer size (12)"
+    echo "-k, --keep                              If set, all the intermediate files will be kept"
+    echo "-f, --fasta string                      *fasta/fastq file containing the reads, file can ge gzipped, multiple files should be listed in single quotes e.g. 'file1.fastq file2.fastq'"
+    echo "-r, --ref path                          *fasta file containing the genome sequence"
+    echo "-g, --gtf path                          *GTF file for the genome annotation"
+    echo "-p, --prefix string                     Prefix of the output files (output)"
+    echo "-t, --threads int                       Number of threads (16)"
+    echo "-e, --allowed_exon_gap_or_overlap int   Threshold for the allowed bases of gaps or overlaps between two adjacent exons in mapped reads for building a valid  transcript (15)"
+    echo "-h, --help                              This message"
+    echo "-v, --verbose                           Verbose mode (False)"
 }
 
 while [[ $# > 0 ]]

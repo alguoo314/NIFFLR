@@ -222,14 +222,15 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
 
 #final quantification
   trmap -c '=c' ${OUTPUT_PREFIX}.transcripts.gtf $OUTPUT_PREFIX.fix.gtf | \
-    quantify.pl $OUTPUT_PREFIX.gtf | grep -v "^unique_ref" > $OUTPUT_PREFIX.quantify.txt.tmp && \
-  mv $OUTPUT_PREFIX.quantify.txt.tmp $OUTPUT_PREFIX.quantify.txt && \
+    quantify.pl $OUTPUT_PREFIX.gtf | grep -v "^unique_ref" | \
+    perl -ane 'BEGIN{print "#transcript\tnum_reads\tintron_chain\tmin_junction_count\tjunction_counts\n"}{printf("%s\t%.2f\t%s\t%.2f\t%s\n",$F[1],$F[5],$F[3],$F[7],join(" ",@F[9..$#F]))}' > $OUTPUT_PREFIX.quantify.tsv.tmp && \
+  mv $OUTPUT_PREFIX.quantify.tsv.tmp $OUTPUT_PREFIX.quantify.tsv && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"
 fi
 
 
 if [ -e nifflr.quantification.success ];then
-  log "Assembled transcripts are in $OUTPUT_PREFIX.transcripts.gtf, transcript read counts are in $OUTPUT_PREFIX.quantify.txt" && \
+  log "Assembled transcripts are in $OUTPUT_PREFIX.transcripts.gtf, transcript read counts are in $OUTPUT_PREFIX.quantify.tsv" && \
   if [ $KEEP_INTERM -lt 1 ];then
     rm -f $OUTPUT_PREFIX.fix.gtf $OUTPUT_PREFIX.fix.filter.gtf $OUTPUT_PREFIX.quantify_ref.txt $OUTPUT_PREFIX.known.gtf $OUTPUT_PREFIX.quantify_novel.txt $OUTPUT_PREFIX.combine.annotated.gtf gffcmp.out $OUTPUT_PREFIX.combine ${OUTPUT_PREFIX}_combine.combined.gtf $OUTPUT_PREFIX.novel.gtf
   fi

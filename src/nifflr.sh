@@ -13,6 +13,9 @@ BASES=35
 MER=12
 GAP_OVERLAP_ALLOWANCE=15
 MAX_AVG_OVERLAP=5
+KNOWN_J=0.01
+NOVEL_J=2.0
+
 if tty -s < /dev/fd/1 2> /dev/null; then
     GC='\e[0;32m'
     RC='\e[0;31m'
@@ -44,6 +47,8 @@ function usage {
     echo "Options (default value in (), *required):"
     echo "-B, --bases double                      minimum percentage of exon bases in matching K-mers (35.0)"
     echo "-m, --mer int                           alignment K-mer size (12)"
+    echo "-k, --known float                       minimum distributed intron junction coverage for detection of known transcripts (0.01)"
+    echo "-n, --novel float                       minimum distributed intron junction coverage for detection of novel transcripts (2.0)"
     echo "-f, --fasta string                      *fasta/fastq file containing the reads, file can ge gzipped, multiple files should be listed in single quotes e.g. 'file1.fastq file2.fastq'"
     echo "-r, --ref path                          *fasta file containing the genome sequence"
     echo "-g, --gtf path                          *GTF file for the genome annotation"
@@ -76,15 +81,23 @@ do
 	    export BASES="$2"
 	    shift
             ;;
-	-m|--mer)
-	    export MER="$2"
+	-k|--known)
+	    export KNOWN_J="$2"
 	    shift
 	    ;;
-	 -r|--ref)
+        -n|--novel)
+            export NOVEL_J="$2"
+            shift
+            ;;
+        -m|--mer)
+            export MER="$2"
+            shift
+            ;;
+	-r|--ref)
             export REF="$2"
             shift
             ;;
-	 -p|--prefix)
+	-p|--prefix)
             export OUTPUT_PREFIX="$2"
             shift
             ;;
@@ -189,7 +202,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   trmap -c '=c' $INPUT_GTF $OUTPUT_PREFIX.fix.gtf | \
     quantify.pl $OUTPUT_PREFIX.gtf  > $OUTPUT_PREFIX.quantify_ref.txt.tmp && \
   mv $OUTPUT_PREFIX.quantify_ref.txt.tmp $OUTPUT_PREFIX.quantify_ref.txt && \
-  perl -ane '{$h{$F[1]}=1 if($F[7] > 0 || ($F[7] ==-1 && $F[5]>4)||$F[0] eq "unique_ref");}END{open(FILE,"gffread -T '$INPUT_GTF' | ");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_ref.txt > $OUTPUT_PREFIX.known.gtf.tmp && \
+  perl -ane '{$h{$F[1]}=1 if($F[7] > '$KNOWN_J' || ($F[7] ==-1 && $F[5]>4)||$F[0] eq "unique_ref");}END{open(FILE,"gffread -T '$INPUT_GTF' | ");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_ref.txt > $OUTPUT_PREFIX.known.gtf.tmp && \
   mv $OUTPUT_PREFIX.known.gtf.tmp $OUTPUT_PREFIX.known.gtf && \
   
 #combine the filtered preliminary transcripts
@@ -200,7 +213,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   trmap -c '=c' ${OUTPUT_PREFIX}_combine.combined.gtf $OUTPUT_PREFIX.fix.filter.gtf | \
     quantify.pl $OUTPUT_PREFIX.gtf > $OUTPUT_PREFIX.quantify_novel.txt.tmp && \
   mv $OUTPUT_PREFIX.quantify_novel.txt.tmp $OUTPUT_PREFIX.quantify_novel.txt && \
-  perl -ane '{$h{$F[1]}=1 if($F[7] > 1);}END{open(FILE,"'${OUTPUT_PREFIX}'_combine.combined.gtf");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_novel.txt > $OUTPUT_PREFIX.novel.gtf.tmp && \
+  perl -ane '{$h{$F[1]}=1 if($F[7] > '$NOVEL_J');}END{open(FILE,"'${OUTPUT_PREFIX}'_combine.combined.gtf");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_novel.txt > $OUTPUT_PREFIX.novel.gtf.tmp && \
   mv $OUTPUT_PREFIX.novel.gtf.tmp $OUTPUT_PREFIX.novel.gtf && \
 
 #combine known and novel; eliminate novel that are equal or contained in known

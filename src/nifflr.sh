@@ -13,7 +13,7 @@ BASES=35
 MER=12
 GAP_OVERLAP_ALLOWANCE=15
 MAX_AVG_OVERLAP=5
-KNOWN_J=0.01
+KNOWN_J=0.0
 NOVEL_J=2.0
 
 if tty -s < /dev/fd/1 2> /dev/null; then
@@ -47,8 +47,8 @@ function usage {
     echo "Options (default value in (), *required):"
     echo "-B, --bases double                      minimum percentage of exon bases in matching K-mers (35.0)"
     echo "-m, --mer int                           alignment K-mer size (12)"
-    echo "-k, --known float                       minimum distributed intron junction coverage for detection of known transcripts (0.01)"
-    echo "-n, --novel float                       minimum distributed intron junction coverage for detection of novel transcripts (2.0)"
+    echo "-k, --known float                       minimum bound for distributed intron junction coverage for detection of known transcripts (0.0)"
+    echo "-n, --novel float                       minimum bound for distributed intron junction coverage for detection of novel transcripts (2.0)"
     echo "-f, --fasta string                      *fasta/fastq file containing the reads, file can ge gzipped, multiple files should be listed in single quotes e.g. 'file1.fastq file2.fastq'"
     echo "-r, --ref path                          *fasta file containing the genome sequence"
     echo "-g, --gtf path                          *GTF file for the genome annotation"

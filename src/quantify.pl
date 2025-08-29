@@ -78,7 +78,7 @@ sub process_matches{
       if(scalar(@intron_chain)>1){
         if(defined($junctions{$ref_name})){
 	  for($i=$match_start;$i<$match_start+$ic_match-1;$i++){
-	    $junctions{$ref_name}->[$i]+=$num_reads{$qry_transcript};
+	    $junctions{$ref_name}->[$i]+=$num_reads{$qry_transcript}/$num_matches;
 	  }
         }else{
 	  my @arr=();
@@ -86,7 +86,7 @@ sub process_matches{
 	    push(@arr,0);
 	  }
 	  for($i=$match_start;$i<$match_start+$ic_match-1;$i++){
-	    $arr[$i]+=$num_reads{$qry_transcript};
+	    $arr[$i]+=$num_reads{$qry_transcript}/$num_matches;
 	  }
 	  $junctions{$ref_name}=\@arr;
         }

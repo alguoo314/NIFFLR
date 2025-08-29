@@ -192,9 +192,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   mv $OUTPUT_PREFIX.quantify_novel.txt.tmp $OUTPUT_PREFIX.quantify_novel.txt && \
   perl -ane '{$h{$F[1]}=1 if($F[7] > 1);}END{open(FILE,"'${OUTPUT_PREFIX}'_combine.combined.gtf");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_novel.txt > $OUTPUT_PREFIX.novel.gtf.tmp && \
   mv $OUTPUT_PREFIX.novel.gtf.tmp $OUTPUT_PREFIX.novel.gtf && \
-  gffcompare -T -r $OUTPUT_PREFIX.known.gtf $OUTPUT_PREFIX.novel.gtf -o $OUTPUT_PREFIX.combine 1>gffcmp.out 2>&1 && \
-  rm -f ${OUTPUT_PREFIX}.combine.{loci,tracking} &&\
-  gffread -T $OUTPUT_PREFIX.known.gtf <(gffread --nids <(perl -F'\t' -ane '{print "$1\n" if($F[8] =~ /transcript_id "(\S+)";(.+) class_code "(c|=)";/);}' $OUTPUT_PREFIX.combine.annotated.gtf) $OUTPUT_PREFIX.novel.gtf ) > $OUTPUT_PREFIX.transcripts.gtf.tmp && \
+  gffread -T $OUTPUT_PREFIX.known.gtf <(gffread --nids <(trmap -c '=c' $OUTPUT_PREFIX.known.gtf $OUTPUT_PREFIX.novel.gtf |awk '{if($1~/^>/) print substr($1,2)}' ) $OUTPUT_PREFIX.novel.gtf ) > $OUTPUT_PREFIX.transcripts.gtf.tmp && \
   mv $OUTPUT_PREFIX.transcripts.gtf.tmp $OUTPUT_PREFIX.transcripts.gtf && \
   trmap -c '=c' ${OUTPUT_PREFIX}.transcripts.gtf $OUTPUT_PREFIX.fix.gtf | quantify.pl $OUTPUT_PREFIX.gtf | grep -v "^unique_ref" > $OUTPUT_PREFIX.quantify.txt.tmp && \
   mv $OUTPUT_PREFIX.quantify.txt.tmp $OUTPUT_PREFIX.quantify.txt && \

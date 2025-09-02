@@ -205,15 +205,37 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   perl -ane '{$h{$F[1]}=1 if($F[7] > '$KNOWN_J' || ($F[7] ==-1 && $F[5]>4)||$F[0] eq "unique_ref");}END{open(FILE,"gffread -T '$INPUT_GTF' | ");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_ref.txt > $OUTPUT_PREFIX.known.gtf.tmp && \
   mv $OUTPUT_PREFIX.known.gtf.tmp $OUTPUT_PREFIX.known.gtf && \
   
-#combine the filtered preliminary transcripts
+#combine the filtered preliminary transcripts and remove ones with short introns 
   gffcompare -STC $OUTPUT_PREFIX.fix.filter.gtf -o ${OUTPUT_PREFIX}_combine 1>gffcmp.out 2>&1 && \
   rm -f ${OUTPUT_PREFIX}_combine.{redundant.gtf,stats,tracking,loci} && \
 
 #determine which filtered preliminary transcripts are present
+  MIN_INTRON=50
   trmap -c '=c' ${OUTPUT_PREFIX}_combine.combined.gtf $OUTPUT_PREFIX.fix.filter.gtf | \
     quantify.pl $OUTPUT_PREFIX.gtf > $OUTPUT_PREFIX.quantify_novel.txt.tmp && \
   mv $OUTPUT_PREFIX.quantify_novel.txt.tmp $OUTPUT_PREFIX.quantify_novel.txt && \
-  perl -ane '{$h{$F[1]}=1 if($F[7] > '$NOVEL_J');}END{open(FILE,"'${OUTPUT_PREFIX}'_combine.combined.gtf");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_novel.txt > $OUTPUT_PREFIX.novel.gtf.tmp && \
+  perl -ane '{
+    if($F[7] > '$NOVEL_J'){
+      $h{$F[1]}=1;
+      @f=split(/-/,$F[3]);
+      for($i=1;$i<$#f;$i++){
+        @ff=split(/,/,$f[$i]);
+        $h{$F[1]}=0 if(abs($ff[0]-$ff[1])<'$MIN_INTRON');
+      }
+    }
+  }END{
+    open(FILE,"'${OUTPUT_PREFIX}'_combine.combined.gtf");
+    while($line=<FILE>){
+      chomp($line);
+      @f=split(/\t/,$line);
+      if($f[2] eq "transcript"){
+        if($f[8] =~ /transcript_id "(\S+)";/){
+          $flag=$h{$1}>0 ? 1:0;
+        }
+      }
+      print $line,"\n" if($flag);
+    }
+  }' $OUTPUT_PREFIX.quantify_novel.txt > $OUTPUT_PREFIX.novel.gtf.tmp && \
   mv $OUTPUT_PREFIX.novel.gtf.tmp $OUTPUT_PREFIX.novel.gtf && \
 
 #combine known and novel; eliminate novel that are equal or contained in known

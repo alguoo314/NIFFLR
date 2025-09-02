@@ -191,11 +191,11 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   log "Performing filtering and quantification of assembled transcripts" && \
 #fix junctions
   gffread --tlf $INPUT_GTF | \
-    fix_junctions.pl $OUTPUT_PREFIX.gtf |gffread -M -T > $OUTPUT_PREFIX.fix.gtf.tmp && \
-  mv $OUTPUT_PREFIX.fix.gtf.tmp $OUTPUT_PREFIX.fix.gtf && \
-  gffread --tlf $INPUT_GTF | \
+    tee >( fix_junctions.pl $OUTPUT_PREFIX.gtf | \
+      gffread -M -T > $OUTPUT_PREFIX.fix.gtf.tmp ) | \
     fix_junctions.pl <(perl -F'\t' -ane '{if($F[8] =~ /^gene_id "(\S+)"; transcript_id "(\S+)"; source_reads "(\S+)"; longest_mapped_read_len "(\S+)"; best_matched_reads_avg_penality_score "(\S+)"; best_matched_reads_max_penality_score "(\S+)";/){$flag=($5<2 || $6<5) ? 1 : 0;}print if($flag);}' $OUTPUT_PREFIX.gtf) |\
     gffread -M -T > $OUTPUT_PREFIX.fix.filter.gtf.tmp && \
+  mv $OUTPUT_PREFIX.fix.gtf.tmp $OUTPUT_PREFIX.fix.gtf && \
   mv $OUTPUT_PREFIX.fix.filter.gtf.tmp $OUTPUT_PREFIX.fix.filter.gtf && \
 
 #determine which reference transcripts are present

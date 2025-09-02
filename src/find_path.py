@@ -104,9 +104,11 @@ def main():
         with open(outp,'a') as of:
             of.write("".join(to_be_written))
     
-    with open('scores.csv','w') as file: #this is mostly for statsitical calculation of the percentage of each score range before determining the cutoff was 5. Can remove before publishing
-        csvwriter = csv.writer(file,delimiter='\n')
-        csvwriter.writerow(score_recorder)
+   
+    with open("scores.csv", "w", newline="") as file:
+        writer = csv.writer(file)
+        for score in score_recorder:
+            writer.writerow([score])
          
 
 def extract_w(lst):

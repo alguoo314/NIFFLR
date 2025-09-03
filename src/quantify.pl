@@ -38,6 +38,7 @@ while($line=<STDIN>){
     push(@match_lines,$line);
   }
 }
+process_matches(@match_lines) if(scalar(@match_lines)>0 && $num_reads{$qry_transcript}>0);
 
 foreach $t(keys %read_counts){
   my $min_count=1000000000;

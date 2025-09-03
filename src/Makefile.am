@@ -6,7 +6,7 @@ AM_LDFLAGS = $(JELLYFISH2_0_LIBS)
 
 noinst_HEADERS = $(YAGGO_SOURCES)
 bin_PROGRAMS =
-dist_bin_SCRIPTS = find_path.py create_exon_fasta.py add_read_counts.py generate_gtf.py majority_vote.py nifflr.sh fastqToFasta.pl quantify.pl fix_junctions.pl gffcompare gffread trmap
+dist_bin_SCRIPTS = find_path.py create_exon_fasta.py add_read_counts.py generate_gtf.py majority_vote.py nifflr.sh fastqToFasta.pl quantify.pl fix_junctions.pl check_intron_chains.pl gffcompare gffread trmap
 data_DATA =
 BUILT_SOURCES = $(YAGGO_SOURCES)
 CLEANFILES =

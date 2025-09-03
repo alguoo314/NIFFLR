@@ -238,8 +238,8 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   }' $OUTPUT_PREFIX.quantify_novel.txt > $OUTPUT_PREFIX.novel.gtf.tmp && \
   mv $OUTPUT_PREFIX.novel.gtf.tmp $OUTPUT_PREFIX.novel.gtf && \
 
-#combine known and novel; eliminate novel that are equal or contained in known
-  gffread -T $OUTPUT_PREFIX.known.gtf <(gffread --nids <(trmap -c '=c' $OUTPUT_PREFIX.known.gtf $OUTPUT_PREFIX.novel.gtf |awk '{if($1~/^>/) print substr($1,2)}' ) $OUTPUT_PREFIX.novel.gtf ) > $OUTPUT_PREFIX.transcripts.gtf.tmp && \
+#combine known and novel; eliminate novel that are equal or contained in reference
+  gffread -T $OUTPUT_PREFIX.known.gtf <(gffread --nids <(trmap -c '=cj' $INPUT_GTF $OUTPUT_PREFIX.novel.gtf |check_intron_chains.pl) $OUTPUT_PREFIX.novel.gtf ) > $OUTPUT_PREFIX.transcripts.gtf.tmp && \
   mv $OUTPUT_PREFIX.transcripts.gtf.tmp $OUTPUT_PREFIX.transcripts.gtf && \
 
 #final quantification

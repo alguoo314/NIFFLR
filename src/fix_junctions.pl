@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 #pipe in output of gffread --tlf on the reference annotation
+my $max_dev=10;
 while($line=<STDIN>){
   chomp($line);
   @F=split(/\t/,$line);
@@ -28,22 +29,22 @@ while($line=<FILE>){
         for($j=1;$j<$#ff;$j++){
           if(not(defined($junc{"$F[0] $F[6] $ff[$j]"}))){#never seen this junction. try to fix +-5 bp
             ($jd,$ja)=split(/,/,$ff[$j]);
-            for($k=1;$k<=10;$k++){
+            for($k=1;$k<=$max_dev;$k++){
               if(defined($junc{"$F[0] $F[6] ".($jd+$k).",".($ja)})){
                 $ff[$j]=($jd+$k).",".($ja);
-                $k=11;
+                $k=$max_dev+1;
               }elsif(defined($junc{"$F[0] $F[6] ".($jd-$k).",".($ja)})){
                 $ff[$j]=($jd-$k).",".($ja);
-                $k=11;
+                $k=$max_dev+1;
               }
             }
-            for($k=1;$k<=10;$k++){
+            for($k=1;$k<=$max_dev;$k++){
               if(defined($junc{"$F[0] $F[6] ".($jd).",".($ja+$k)})){
                 $ff[$j]=($jd).",".($ja+$k);
-                $k=11;
+                $k=$max_dev+1;
               }elsif(defined($junc{"$F[0] $F[6] ".($jd).",".($ja-$k)})){
                 $ff[$j]=($jd).",".($ja-$k);
-                $k=11;
+                $k=$max_dev+1;
               }
             }
           }

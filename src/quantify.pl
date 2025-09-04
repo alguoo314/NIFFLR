@@ -3,6 +3,7 @@
 #assumes input of "trmap -c '=c' output.combined.gtf output.gtf" on STDIN
 my $slack=10;
 my $all_gtf=$ARGV[0];
+$slack=$ARGV[1] if($ARGV[1]>0);
 my %num_reads=();
 my %junctions=();
 my %read_counts=();

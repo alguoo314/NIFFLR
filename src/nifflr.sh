@@ -161,7 +161,7 @@ if [ ! -e nifflr.alignment.success ];then
   zcat -f $INPUT_READS | \
   $MYPATH/fastqToFasta.pl |\
   $MYPATH/psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
-  $MYPATH/majority_vote.py | \
+  $MYPATH/majority_vote.pl | \
   $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
   rm -f nifflr.gtf_generation.success && \

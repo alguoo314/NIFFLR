@@ -63,6 +63,8 @@ def main():
 
                 if read_start > prev_read_end:
                     matched_kmers=kmer
+                elif read_end <=  prev_read_end:
+                    matched_kmers = 0
                 else:
                     overlap = max(0, prev_read_end-read_start+1)
                     total_len = read_end - read_start + 1

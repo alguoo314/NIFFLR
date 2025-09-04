@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #this script perfroms inexact matching of intron chains
 #assumes input of "trmap -c '=cj' ref.gtf output.novel.gtf" on STDIN
-my $slack=20;
+my $slack=15;
 my %matches=();
 my $qry_transcript;
 my @intron_chain=();
@@ -47,7 +47,7 @@ sub process_inexact_matches{
       #find the first match
       if($cff[0]>=$cr[0] && ($cr[1]-$cff[1]<$slack && $cr[1]>=$cff[1])){#found match
 	$match++;
-	for($j=$i+1;$j<=$#ref_intron_chain;$j++){
+	for($j=$i+1;$j<=$#ref_intron_chain-1;$j++){
           @cr=split(/-/,$ref_intron_chain[$j]);
           @cf=split(/-/,$intron_chain[$j-$i]);
           if(($cf[0]-$cr[0]<$slack && $cf[0]>=$cr[0]) && ($cr[1]-$cf[1]<$slack && $cr[1]>=$cf[1])){
@@ -56,6 +56,11 @@ sub process_inexact_matches{
             last;
           }
         }
+        #last exon
+        $j=$#ref_intron_chain;
+        @cr=split(/-/,$ref_intron_chain[$j]);
+        @cf=split(/-/,$intron_chain[$j-$i]);
+        $match++ if(($cf[0]-$cr[0]<$slack && $cf[0]>=$cr[0]) && $cr[1]>=$cf[1]);
         $i=$#ref_intron_chain-$#intron_chain;
       }
     }

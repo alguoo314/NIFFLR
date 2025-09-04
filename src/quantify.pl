@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 #this code reads the number of reads in  each transcript from output.gtf and then quantifies each reference transcript in the output of trmap
 #assumes input of "trmap -c '=c' output.combined.gtf output.gtf" on STDIN
+my $slack=10;
 my $all_gtf=$ARGV[0];
 my %num_reads=();
 my %junctions=();
@@ -68,7 +69,7 @@ sub process_matches{
       @crf=split(/-/,$ref_intron_chain[$i]);
       @crl=split(/-/,$ref_intron_chain[$i+$#intron_chain]);
       #check the first and the last exon
-      if($cf[0]-$crf[0]<10 && $crf[1]==$cf[1] && $crl[0]==$cl[0] && $crl[1]-$cl[1]<10){
+      if(($cf[0]-$crf[0]<$slack && $cf[0]>=$crf[0]) && $crf[1]==$cf[1] && $crl[0]==$cl[0] && ($crl[1]-$cl[1]<$slack && $crl[1]>=$cl[1])){
 	$match_start=$i;
 	$num_matches++;
 	$matched_ref{$ref_name}=$match_start;

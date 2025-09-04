@@ -64,7 +64,11 @@ def main():
                 if read_start > prev_read_end:
                     matched_kmers=kmer
                 else:
-                    matched_kmers=kmer-prev_kmer_num
+                    overlap = max(0, prev_read_end-read_start+1)
+                    total_len = read_end - read_start + 1
+                    non_overlap_len = max(0, total_len - overlap)
+                    matched_kmers = int(kmer * (non_overlap_len / total_len))
+                    
 
                 prev_end[exon_name+order]=read_end
                 prev_kmer[exon_name+order]=kmer

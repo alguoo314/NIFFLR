@@ -159,10 +159,10 @@ if [ ! -e nifflr.alignment.success ];then
   log "Aligning reads to exons" && \
   SIZE=$(grep -v ">" $OUTPUT_PREFIX.exons.fna | awk '{sum += length} END {print sum}') && \
   zcat -f $INPUT_READS | \
-  $MYPATH/fastqToFasta.pl |\
-  $MYPATH/psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout | \
-  $MYPATH/majority_vote.pl | \
-  $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp && \
+    $MYPATH/fastqToFasta.pl | \
+    $MYPATH/psa_aligner -t $JF_THREADS -B $BASES -m $MER --psa-min $MER -s $SIZE -q /dev/stdin -r $OUTPUT_PREFIX.exons.fna --coords /dev/stdout |\
+    $MYPATH/majority_vote.py | \
+    $MYPATH/find_path.py -o $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp && \
   mv $OUTPUT_PREFIX.best_paths.$MER.fasta.tmp $OUTPUT_PREFIX.best_paths.fasta && \
   rm -f nifflr.gtf_generation.success && \
   touch nifflr.alignment.success || error_exit "jf_aligner or majority voting or finding the best path failed. Please see the detailed error messages."

@@ -21,7 +21,7 @@ while($line=<STDIN>){
       }else{
         $chrom_gene_ori.="-";
       }
-      if($max_offset{$chrom_gene_ori}<$info[1]){
+      if($max_offset{$chrom_gene_ori}<=$info[1]){
         my $factor=$max_offset{$chrom_gene_ori}<=$info[0] ? 1 : ($info[1]-$max_offset{$chrom_gene_ori})/($info[1]-$info[0]);
         $kmers{$chrom_gene_ori}+=$info[4]*$factor;
         $max_offset{$chrom_gene_ori}=$info[1];

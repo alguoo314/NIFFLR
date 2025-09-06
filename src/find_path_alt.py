@@ -37,7 +37,7 @@ def main():
                 else:
                   for ex in exons[1:]: 
                     if ex[2] == exons[0][2]: #mapped as left as the first exon
-                      if ex[1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or ex[4] >=  exons[-1][4] or ex[5] >=  exons[-1][5] or ex[4] < 0 or ex[2] == exons[-1][2] or ex[3] >=  exons[-1][3]:
+                      if ex[1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or ex[4] >=  exons[-1][4] or ex[5] >=  exons[-1][5] or ex[2] == exons[-1][2] or ex[3] >=  exons[-1][3]:
                         only_one_exon = True
                         break
                       else:

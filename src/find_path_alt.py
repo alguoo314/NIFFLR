@@ -34,14 +34,14 @@ def main():
                 only_one_exon = False
                 if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or exons[0][4] >=  exons[-1][4] or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0 or exons[0][2] == exons[-1][2] or exons[0][3] >=  exons[-1][3]:
                     only_one_exon = True
-                else:
-                  for ex in exons[1:]: 
-                    if ex[2] == exons[0][2]: #mapped as left as the first exon
-                      if ex[1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or ex[4] >=  exons[-1][4] or ex[5] >=  exons[-1][5] or ex[2] == exons[-1][2] or ex[3] >=  exons[-1][3]:
-                        only_one_exon = True
-                        break
-                      else:
-                        break
+                # else:
+                #   for ex in exons[1:]: 
+                #     if ex[2] == exons[0][2]: #mapped as left as the first exon
+                #       if ex[1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or ex[4] >=  exons[-1][4] or ex[5] >=  exons[-1][5] or ex[2] == exons[-1][2] or ex[3] >=  exons[-1][3]:
+                #         only_one_exon = True
+                #         break
+                #       else:
+                #         break
                 if only_one_exon == True:
                     exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
                     #just output the longest mapping with min overhang penalty as possible
@@ -97,14 +97,14 @@ def main():
     only_one_exon = False
     if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or exons[0][4] >=  exons[-1][4] or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0 or exons[0][2] == exons[-1][2] or exons[0][3] >=  exons[-1][3]:
         only_one_exon = True
-    else:
-      for ex in exons[1:]: 
-        if ex[2] == exons[0][2]: #mapped as left as the first exon
-          if ex[1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or ex[4] >=  exons[-1][4] or ex[5] >=  exons[-1][5] or ex[2] == exons[-1][2] or ex[3] >=  exons[-1][3]:
-            only_one_exon = True
-            break
-          else:
-            break
+    # else:
+    #   for ex in exons[1:]: 
+    #     if ex[2] == exons[0][2]: #mapped as left as the first exon
+    #       if ex[1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or ex[4] >=  exons[-1][4] or ex[5] >=  exons[-1][5] or ex[2] == exons[-1][2] or ex[3] >=  exons[-1][3]:
+    #         only_one_exon = True
+    #         break
+    #       else:
+    #         break
     if only_one_exon == True:
         exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
         #just output the longest mapping with min overhang penalty as possible

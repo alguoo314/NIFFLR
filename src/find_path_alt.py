@@ -240,7 +240,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             possible_paths_no_overlaps.sort(key = lambda x: (float(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
         # if there is a tie of score between two paths, choose the path that spans the most of the reads (actual match, not overhangs)
         if len(possible_paths) == 0:
-            exons.sort(key = lambda x: (int(x[3])-int(x[2])),reverse=True)
+            exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
             exons[0][1]=exons[0][1].split("_rePlicate")[0]
             to_be_written.append(str(read_name+'\t'+str(0)+'\t'+str(0)+'\n'))
             to_be_written.append('\t'.join(map(str,exons[0][:-1]))+'\n')

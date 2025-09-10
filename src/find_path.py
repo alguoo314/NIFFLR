@@ -30,17 +30,26 @@ def main():
                 with open(outp,'a') as of:
                     of.write("".join(to_be_written))
                 to_be_written = []
-            if exons != []:
-                #if only one exon
-                if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (exons[0][4] >=  exons[-1][4]) or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0 or exons[0][2] == exons[-1][2] or exons[0][3] >=  exons[-1][3]:
+            if exons != []: 
+                only_one_exon = False
+                if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or exons[0][4] >=  exons[-1][4] or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0 or exons[0][2] == exons[-1][2] or exons[0][3] >=  exons[-1][3]:
+                    only_one_exon = True
+                # else:
+                #   for ex in exons[1:]: 
+                #     if ex[2] == exons[0][2]: #mapped as left as the first exon
+                #       if ex[1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or ex[4] >=  exons[-1][4] or ex[5] >=  exons[-1][5] or ex[2] == exons[-1][2] or ex[3] >=  exons[-1][3]:
+                #         only_one_exon = True
+                #         break
+                #       else:
+                #         break
+                if only_one_exon == True:
                     exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
                     #just output the longest mapping with min overhang penalty as possible
                     score_recorder.append(0)
                     exons[0][1]=exons[0][1].split("_rePlicate")[0]
                     to_be_written.append(str(read_name+'\t'+str(0)+'\t'+str(0)+'\n'))
                     to_be_written.append('\t'.join(map(str,exons[0][:-1]))+'\n')
-                    read_counter +=1 
-                    
+                    read_counter +=1    
                 else:
                     chr_and_gene_name = '-'.join(exons[0][1].split('-')[:-2])
                     if (chr_and_gene_name[-1] == 'R')+(mapped_ori=='-') == 1: #only 1 is true
@@ -48,6 +57,7 @@ def main():
                     else:
                         neg = False
                     score_recorder,to_be_written,read_counter= construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_index_record,outp,score_recorder,to_be_written,read_counter,neg)
+           
             read_name_and_mapped_ori = l.strip().split('\t')
             read_name = read_name_and_mapped_ori[0]
             mapped_ori=read_name_and_mapped_ori[1]
@@ -83,17 +93,31 @@ def main():
             exons.append([exon_info[0],exon_name,int(exon_info[2]),int(exon_info[3]),start,end,int(exon_info[6]),float(overhangs_penalty)])
             exon_index_record[exon_name] = exon_info
             
-     #final
-    
-    if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or (int(exons[0][4]) >=  int(exons[-1][4])) or int(exons[0][5]) >=  int(exons[-1][5]) or int(exons[-1][4]) < 0 or int(exons[0][2]) == int(exons[-1][2]) or int(exons[0][3]) >=  int(exons[-1][3]):
+    #final
+    only_one_exon = False
+    if exons[0][1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or exons[0][4] >=  exons[-1][4] or exons[0][5] >=  exons[-1][5] or exons[-1][4] < 0 or exons[0][2] == exons[-1][2] or exons[0][3] >=  exons[-1][3]:
+        only_one_exon = True
+    # else:
+    #   for ex in exons[1:]: 
+    #     if ex[2] == exons[0][2]: #mapped as left as the first exon
+    #       if ex[1].split("_rePlicate")[0] ==  exons[-1][1].split("_rePlicate")[0] or ex[4] >=  exons[-1][4] or ex[5] >=  exons[-1][5] or ex[2] == exons[-1][2] or ex[3] >=  exons[-1][3]:
+    #         only_one_exon = True
+    #         break
+    #       else:
+    #         break
+    if only_one_exon == True:
         exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
         #just output the longest mapping with min overhang penalty as possible
         with open(outp,'a') as of:
-            of.write("".join(to_be_written))
-            score_recorder.append(0)
-            exons[0][1]=exons[0][1].split("_rePlicate")[0]
-            of.write(read_name+'\t'+str(0)+'\t'+str(0)+'\n')
-            of.write('\t'.join(map(str,exons[0][:-1]))+'\n')             
+          of.write("".join(to_be_written))
+          score_recorder.append(0)
+          exons[0][1]=exons[0][1].split("_rePlicate")[0]
+          of.write(read_name+'\t'+str(0)+'\t'+str(0)+'\n')
+          of.write('\t'.join(map(str,exons[0][:-1]))+'\n')
+
+
+
+  
     else:
         chr_and_gene_name = '-'.join(exons[0][1].split('-')[:-2])
         if (chr_and_gene_name[-1] == 'R')+(mapped_ori=='-') == 1:
@@ -198,6 +222,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
         possible_paths_no_overlaps = []
         intersec=origin_candidate_nodes.intersection(destination_candidate_nodes)
         if len(intersec) > 0:
+            # this can still happen because unconnected_nodes trimming has changed the first and last exon in the set
             for node in intersec:
                 possible_paths.append([0,overhang_pen_dict[node],[node]])
                 possible_paths_no_overlaps.append([0,overhang_pen_dict[node],[node]])
@@ -215,7 +240,7 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             possible_paths_no_overlaps.sort(key = lambda x: (float(x[1])/(len(x[2])-1),-1*(int(exon_index_record[x[2][-1]][3]) - int(exon_index_record[x[2][0]][2]))))
         # if there is a tie of score between two paths, choose the path that spans the most of the reads (actual match, not overhangs)
         if len(possible_paths) == 0:
-            exons.sort(key = lambda x: (int(x[3])-int(x[2])),reverse=True)
+            exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
             exons[0][1]=exons[0][1].split("_rePlicate")[0]
             to_be_written.append(str(read_name+'\t'+str(0)+'\t'+str(0)+'\n'))
             to_be_written.append('\t'.join(map(str,exons[0][:-1]))+'\n')
@@ -238,10 +263,9 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             score = 0
             score_recorder.append(score)
             to_be_written.append(str(read_name+'\t'+str(0)+'\t'+str(0)+'\t'+'\n'))
-            exons.sort(key = lambda x: (int(x[5])-int(x[4])-int(x[7])),reverse=True)
+            exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
             to_be_written.append('\t'.join(map(str,exons[0]))+'\n')
         else:
-            
             #check for overlap: It refers to the overlap between exon positions in reference file, not where it aligns to the reads            
             if len(possible_paths_no_overlaps)==0 or best_path == best_path_no_overlap or (best_dist_no_overlap/(len(best_path_no_overlap)-1) > 5):
                 if best_path != best_path_no_overlap:

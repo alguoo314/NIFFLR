@@ -169,7 +169,7 @@ if [ ! -e nifflr.alignment.success ];then
 fi
 
 if [ ! -e nifflr.gtf_generation.success ];then
-  log "Converting alignments of exons to transcripts" && \
+  log "Converting best paths of exons to transcripts" && \
   python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.all.gtf && \
   perl -F'\t' -ane '{
     if($F[2] eq "transcript" && $F[8] =~ /transcript_id\s"(\S+)";\ssource_reads\s"(\S+)";\slongest_mapped_read_len\s"(\S+)";\sbest_matched_reads_avg_penality_score\s"(\S+)";\sbest_matched_reads_max_penality_score\s"(\S+)"/){

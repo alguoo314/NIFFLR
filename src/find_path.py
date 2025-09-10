@@ -43,7 +43,7 @@ def main():
                 #       else:
                 #         break
                 if only_one_exon == True:
-                    exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
+                    exons.sort(key = lambda x: (int(x[0])-int(x[7])),reverse=True)
                     #just output the longest mapping with min overhang penalty as possible
                     score_recorder.append(0)
                     exons[0][1]=exons[0][1].split("_rePlicate")[0]
@@ -90,7 +90,7 @@ def main():
             #kmers = int(exon_info[7])
             #overhangs_penalty-= kmers
             
-            exons.append([exon_info[0],exon_name,int(exon_info[2]),int(exon_info[3]),start,end,int(exon_info[6]),float(overhangs_penalty)])
+            exons.append([str(exon_info[7]),exon_name,int(exon_info[2]),int(exon_info[3]),start,end,int(exon_info[6]),float(overhangs_penalty)])
             exon_index_record[exon_name] = exon_info
             
     #final
@@ -106,7 +106,7 @@ def main():
     #       else:
     #         break
     if only_one_exon == True:
-        exons.sort(key = lambda x: (int(x[3])-int(x[2])-int(x[7])),reverse=True)
+        exons.sort(key = lambda x: (int(x[0])-int(x[7])),reverse=True)
         #just output the longest mapping with min overhang penalty as possible
         with open(outp,'a') as of:
           of.write("".join(to_be_written))
@@ -176,7 +176,11 @@ def construct_shortest_path(read_name,exons,outputfile,same_exons_record,exon_in
             edges_candidates.append([node_1_name, node_2_name, length,overlap_forbidden])
 
     weights = extract_w(edges_candidates)
-    thres = (np.min(weights)+10)*2
+    if np.min(weights)<=20:
+        thres = 20
+    else:
+        thres = np.min(weights)+1
+    #thres = (np.min(weights) + 10)*2
     for e in edges_candidates:
         g.addEdge(e[0], e[1], e[2],e[3]) #still add the edge even if the gap/overlap is above the threshold. Prevent segmentation in the middle
         if e[2]<=thres:

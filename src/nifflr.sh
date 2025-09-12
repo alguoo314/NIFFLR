@@ -170,19 +170,8 @@ fi
 
 if [ ! -e nifflr.gtf_generation.success ];then
   log "Converting best paths of exons to transcripts" && \
-  python $MYPATH/generate_gtf.py -i $OUTPUT_PREFIX.best_paths.fasta -g $OUTPUT_PREFIX.all.gtf && \
-  perl -F'\t' -ane '{
-    if($F[2] eq "transcript" && $F[8] =~ /transcript_id\s"(\S+)";\ssource_reads\s"(\S+)";\slongest_mapped_read_len\s"(\S+)";\sbest_matched_reads_avg_penality_score\s"(\S+)";\sbest_matched_reads_max_penality_score\s"(\S+)"/){
-      print STDERR "$1\t$3\t$4\t$5\n";
-      if($4<='$MAX_AVG_OVERLAP' && $5<='$GAP_OVERLAP_ALLOWANCE'){
-        $flag=1;
-      }else{
-        $flag=0;
-      }
-    }print if($flag);
-  }' $OUTPUT_PREFIX.all.gtf 1>$OUTPUT_PREFIX.all.gtf.tmp 2>$OUTPUT_PREFIX.stats.txt.tmp && \
-  mv $OUTPUT_PREFIX.all.gtf.tmp $OUTPUT_PREFIX.gtf && \
-  mv $OUTPUT_PREFIX.stats.txt.tmp $OUTPUT_PREFIX.stats.txt && \
+  python $MYPATH/generate_gtf.py -i <(perl -F'\t' -ane '{if($F[0]=~ /^>/){$flag=0;$flag=1 if($F[1]<='$MAX_AVG_OVERLAP' && $F[2]<='$GAP_OVERLAP_ALLOWANCE');}print if($flag)}' $OUTPUT_PREFIX.best_paths.fasta) -g $OUTPUT_PREFIX.gtf.tmp && \
+  mv $OUTPUT_PREFIX.gtf.tmp $OUTPUT_PREFIX.gtf && \
   rm -f nifflr.quantification.success  && \
   touch nifflr.gtf_generation.success || error_exit "GTF generation failed"
 fi

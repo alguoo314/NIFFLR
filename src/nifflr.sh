@@ -191,7 +191,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   trmap -c '=c' $INPUT_GTF $OUTPUT_PREFIX.fix.gtf | \
     quantify.pl $OUTPUT_PREFIX.gtf  > $OUTPUT_PREFIX.quantify_ref.txt.tmp && \
   mv $OUTPUT_PREFIX.quantify_ref.txt.tmp $OUTPUT_PREFIX.quantify_ref.txt && \
-  perl -ane '{$h{$F[1]}=1 if($F[7] > '$KNOWN_J' || ($F[7] ==-1 && $F[5]>4)||$F[0] eq "unique_ref");}END{open(FILE,"gffread -T '$INPUT_GTF' | ");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_ref.txt > $OUTPUT_PREFIX.known.gtf.tmp && \
+  perl -ane '{$h{$F[1]}=1 if($F[7] > '$KNOWN_J' || ($F[7] ==-1 && $F[5]>2)||$F[0] eq "unique_ref");}END{open(FILE,"gffread -T '$INPUT_GTF' | ");while($line=<FILE>){chomp($line);@f=split(/\t/,$line);if($f[2] eq "transcript"){if($f[8] =~ /transcript_id "(\S+)";/){$flag=defined($h{$1}) ? 1:0;}}print $line,"\n" if($flag);}}' $OUTPUT_PREFIX.quantify_ref.txt > $OUTPUT_PREFIX.known.gtf.tmp && \
   mv $OUTPUT_PREFIX.known.gtf.tmp $OUTPUT_PREFIX.known.gtf && \
   
 #combine the filtered preliminary transcripts and remove ones with short introns 

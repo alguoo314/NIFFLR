@@ -47,8 +47,8 @@ function usage {
     echo "Options (default value in (), *required):"
     echo "-B, --bases double                      minimum percentage of exon bases in matching K-mers (35.0)"
     echo "-m, --mer int                           alignment K-mer size (12)"
-    echo "-k, --known float                       minimum bound for distributed intron junction coverage for detection of known transcripts (0.0)"
-    echo "-n, --novel float                       minimum bound for distributed intron junction coverage for detection of novel transcripts (2.0)"
+    echo "-k, --known float                       minimum (must be > than) intron junction coverage for detection of known transcripts (0.0)"
+    echo "-n, --novel float                       minimum (must be > than) intron junction coverage for detection of novel transcripts (2.0)"
     echo "-f, --fasta string                      *fasta/fastq file containing the reads, file can ge gzipped, multiple files should be listed in single quotes e.g. 'file1.fastq file2.fastq'"
     echo "-r, --ref path                          *fasta file containing the genome sequence"
     echo "-g, --gtf path                          *GTF file for the genome annotation"
@@ -234,7 +234,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
 #final quantification
   trmap -c '=c' ${OUTPUT_PREFIX}.transcripts.gtf $OUTPUT_PREFIX.fix.gtf | \
     quantify.pl $OUTPUT_PREFIX.gtf | grep -v "^unique_ref" | \
-    perl -ane 'BEGIN{print "#transcript\tnum_reads\tintron_chain\tmin_junction_count\tjunction_counts\n"}{printf("%s\t%.2f\t%s\t%.2f\t%s\n",$F[1],$F[5],$F[3],$F[7],join(" ",@F[9..$#F]))}' > $OUTPUT_PREFIX.quantify.tsv.tmp && \
+    perl -ane 'BEGIN{print "#transcript\tnum_reads\tintron_chain\tmin_junction_count\n"}{printf("%s\t%.2f\t%s\t%.2f\n",$F[1],$F[5],$F[3],$F[7])}' > $OUTPUT_PREFIX.quantify.tsv.tmp && \
   mv $OUTPUT_PREFIX.quantify.tsv.tmp $OUTPUT_PREFIX.quantify.tsv && \
   touch nifflr.quantification.success || error_exit "Reference transcripts quantification failed"
 fi

@@ -48,7 +48,7 @@ foreach $t(keys %read_counts){
     $min_count=$c if($c< $min_count);
   }
   $min_count=-1 if($min_count == 1000000000);
-  print "transcript $t exons $exons{$t} reads $read_counts{$t} min_count $min_count junction_counts ",join(" ",@{$junctions{$t}}),"\n";
+  print "transcript $t exons $exons{$t} reads $read_counts{$t} min_count $min_count junction_counts ",join(" ",@{$junctions{$t}})," full_chain_matches ",$full_chain_matches{$t}+0,"\n";
 }
 
 sub process_matches{
@@ -74,6 +74,7 @@ sub process_matches{
 	$match_start=$i;
 	$num_matches++;
 	$matched_ref{$ref_name}=$match_start;
+        $full_chain_matches{$ref_name}=$num_reads{$qry_transcript} if($i==0 && $#ref_intron_chain==$#intron_chain);
       }
     }
   }
@@ -85,26 +86,22 @@ sub process_matches{
       print "unique_ref $ref_name\n" if(scalar(@matches)==1 && $num_matches==1 && scalar(@intron_chain)>1);
       if(defined($matched_ref{$ref_name})){
         my $match_start=$matched_ref{$ref_name};
-        #update intron chain matches
-        if($ic_match>1){
-          if(defined($junctions{$ref_name})){
-            for($i=$match_start;$i<$match_start+$ic_match-1;$i++){
-              $junctions{$ref_name}->[$i]+=$num_reads{$qry_transcript}/$num_matches;
-          }
-        }else{
+#update intron chain matches
+        if(not defined($junctions{$ref_name})){
           my @arr=();
           for($i=0;$i<$#ref_intron_chain;$i++){
             push(@arr,0);
           }
-          for($i=$match_start;$i<$match_start+$ic_match-1;$i++){
-            $arr[$i]+=$num_reads{$qry_transcript}/$num_matches;
-          }
           $junctions{$ref_name}=\@arr;
+        }
+        if($ic_match>1){
+          for($i=$match_start;$i<$match_start+$ic_match-1;$i++){
+            $junctions{$ref_name}->[$i]+=$num_reads{$qry_transcript}/$num_matches;
+          }
         }
       }
       #print "DEBUG updating $ref_name $exons{$ref_name} ",join(" ",@{$junctions{$ref_name}}),"\n";
       $read_counts{$ref_name}+=$num_reads{$qry_transcript}/$num_matches;
-      }
     }
   }
 }

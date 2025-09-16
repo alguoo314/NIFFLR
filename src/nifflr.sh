@@ -195,7 +195,7 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
   mv $OUTPUT_PREFIX.known.gtf.tmp $OUTPUT_PREFIX.known.gtf && \
   
 #combine the filtered preliminary transcripts and remove ones with short introns 
-  gffcompare -STC $OUTPUT_PREFIX.fix.filter.gtf -o ${OUTPUT_PREFIX}_combine 1>gffcmp.out 2>&1 && \
+  gffcompare -STC $OUTPUT_PREFIX.fix.filter.gtf  -o ${OUTPUT_PREFIX}_combine 1>gffcmp.out 2>&1 && \
   rm -f ${OUTPUT_PREFIX}_combine.{redundant.gtf,stats,tracking,loci} && \
 
 #determine which filtered preliminary transcripts are present
@@ -229,8 +229,12 @@ if [ ! -e nifflr.quantification.success ] && [ -e nifflr.gtf_generation.success 
 
 #combine known and novel; eliminate novel that are equal or contained in reference
   gffread -T $OUTPUT_PREFIX.known.gtf <(gffread --nids <(trmap -c '=cj' $INPUT_GTF $OUTPUT_PREFIX.novel.gtf |check_intron_chains.pl) $OUTPUT_PREFIX.novel.gtf ) > $OUTPUT_PREFIX.transcripts.gtf.tmp && \
-  mv $OUTPUT_PREFIX.transcripts.gtf.tmp $OUTPUT_PREFIX.transcripts.gtf && \
+  mv $OUTPUT_PREFIX.transcripts.gtf.tmp $OUTPUT_PREFIX.transcripts.preliminary.gtf && \
 
+#quantify combined
+  gffread --nids <(trmap -c '=c' ${OUTPUT_PREFIX}.transcripts.preliminary.gtf $OUTPUT_PREFIX.fix.gtf | quantify.pl $OUTPUT_PREFIX.gtf | awk '{if(NF>2 && $2~/^TCONS_/ && $8<'$NOVEL_J') print $2}') $OUTPUT_PREFIX.transcripts.preliminary.gtf > $OUTPUT_PREFIX.transcripts.gtf.tmp && \
+  mv  $OUTPUT_PREFIX.transcripts.gtf.tmp  $OUTPUT_PREFIX.transcripts.gtf && \
+  
 #final quantification
   trmap -c '=c' ${OUTPUT_PREFIX}.transcripts.gtf $OUTPUT_PREFIX.fix.gtf | \
     quantify.pl $OUTPUT_PREFIX.gtf | grep -v "^unique_ref" | \

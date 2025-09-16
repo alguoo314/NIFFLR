@@ -247,7 +247,7 @@ fi
 if [ -e nifflr.quantification.success ];then
   log "Assembled transcripts are in $OUTPUT_PREFIX.transcripts.gtf, transcript read counts are in $OUTPUT_PREFIX.quantify.tsv" && \
   if [ $KEEP_INTERM -lt 1 ];then
-    rm -f $OUTPUT_PREFIX.fix.gtf $OUTPUT_PREFIX.fix.filter.gtf $OUTPUT_PREFIX.quantify_ref.txt $OUTPUT_PREFIX.known.gtf $OUTPUT_PREFIX.quantify_novel.txt $OUTPUT_PREFIX.combine.annotated.gtf gffcmp.out $OUTPUT_PREFIX.combine ${OUTPUT_PREFIX}_combine.combined.gtf $OUTPUT_PREFIX.novel.gtf
+    rm -f $OUTPUT_PREFIX.fix.gtf $OUTPUT_PREFIX.fix.filter.gtf $OUTPUT_PREFIX.quantify_ref.txt $OUTPUT_PREFIX.known.gtf $OUTPUT_PREFIX.quantify_novel.txt $OUTPUT_PREFIX.combine.annotated.gtf gffcmp.out $OUTPUT_PREFIX.combine ${OUTPUT_PREFIX}_combine.combined.gtf $OUTPUT_PREFIX.novel.gtf $OUTPUT_PREFIX.transcripts.preliminary.gtf
   fi
 fi
 

@@ -58,6 +58,7 @@ function usage {
     echo "-k, --keep                              if set, all the intermediate files will be kept"
     echo "-h, --help                              this message"
     echo "-v, --verbose                           verbose mode (False)"
+    echo "--version                               version"
 }
 
 while [[ $# > 0 ]]
@@ -111,6 +112,10 @@ do
             ;;
         -v|--verbose)
             set -x
+            ;;
+        --version)
+            echo "2.0.0"
+            exit 0
             ;;
         -h|--help|-u|--usage)
             usage

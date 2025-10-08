@@ -6,8 +6,8 @@ Reference: https://f1000research.com/articles/14-608
 
 # Installation insructions
 
-## Installation from Bioconda
-To install NIFFLR from bioconda, run:
+## Installation from BioConda
+To install NIFFLR from BioConda, run:
 ```
 mamba install -c bioconda -c conda-forge nifflr
 ```
@@ -81,6 +81,7 @@ intron chain -- intron chain of the transcript
 min_junction_count -- minimum number of reads spanning an intron junction in the transcript
 
 <output_prefix>.transcripts.gtf -- GTF file of detected reference and novel transcripts.  Novel transcripts have "nifflr" in the 2nd column of the GTF file.
+
 
 
 

@@ -1,5 +1,9 @@
 # NIFFLR: Novel IsoForm Finder using Long RNASeq reads
 
+NIFFLR is a tool that identifies and quantifies both known and novel isoforms in samples sequences using long-read RNA sequencing data. NIFFLR recovers known transcripts and assembles novel transcripts present in the data by aligning exons from a reference annotation to the long reads. 
+
+Reference: https://f1000research.com/articles/14-608
+
 # Compilation Dependencies
 To successfully compile NIFFLR, make sure the following development libraries are installed on your system:
 
@@ -32,21 +36,36 @@ Note that on some systems you may encounter a build error due to lack of xlocale
 ln -s /usr/include/locale.h /usr/include/xlocale.h
 ```
 
-# Usage:
+# Usage
+To run NIFFLR, run the main executable script nifflr.sh with options:
 ```
+NIFFLR version 2.0.0
 Usage: nifflr.sh [options]
 Options:
 Options (default value in (), *required):
--B, --bases double      For jf_aligner, filter base on percent of bases matching (17.0)
--d, --discard           If supplied, all the intermediate files will be removed (False)
--f, --fasta string      *Path to the fasta/fastq file containing the reads, file can ge gzipped
--r, --ref path          *Path to the fasta file containing the genome sequence
--g, --gtf path          *Path to the GTF file for the genome annotation
--m, --mer uint32        Mer size (15)
--p, --prefix string     Prefix of the output files (output)
--q, --quantification    If supplied, niffler will assign the reads back to the reference transcripts based on coverages (False)
--t, --threads uint16    Number of threads (16)
--h, --help              This message
--v, --verbose           Verbose mode (False)
+-B, --bases double                      minimum percentage of exon bases in matching K-mers (35.0)
+-m, --mer int                           alignment K-mer size (12)
+-k, --known float                       minimum (must be > than) intron junction coverage for detection of known transcripts (0.0)
+-n, --novel float                       minimum (must be > than) intron junction coverage for detection of novel transcripts (2.0)
+-f, --fasta string                      *fasta/fastq file containing the reads, file can ge gzipped, multiple files should be listed in single quotes e.g. 'file1.fastq file2.fastq'
+-r, --ref path                          *fasta file containing the genome sequence
+-g, --gtf path                          *GTF file for the genome annotation
+-p, --prefix string                     prefix of the output files (output)
+-t, --threads int                       number of threads (16)
+-e, --allowed_exon_gap_or_overlap int   maximum allowed gap or overlap between two adjacent aligned exons for building a valid transcript (15)
+-k, --keep                              if set, all the intermediate files will be kept
+-h, --help                              this message
+-v, --verbose                           verbose mode (False)
+--version  
 ```
 
+# Outputs
+Nifflr produces the following output files:
+
+<output_prefix>.quantify.tsv -- tab-separated four column file with the following columns:
+transcript_id -- if of the transcript, either from the input reference or TCONS_* for novel transcripts
+read_count -- number of reads assigned to the transcript
+intron chain -- intron chain of the transcript
+min_junction_count -- minimum number of reads spanning an intron junction in the transcript
+
+<output_prefix>.transcripts.gtf -- GTF file of detected reference and novel transcripts.  Novel transcripts have "nifflr" in the 2nd column of the GTF file.

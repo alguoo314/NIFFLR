@@ -4,20 +4,31 @@ NIFFLR is a tool that identifies and quantifies both known and novel isoforms in
 
 Reference: https://f1000research.com/articles/14-608
 
-# Compilation Dependencies
+# Installation insructions
+
+## Installation from Bioconda
+To install NIFFLR from bioconda, run:
+```
+mamba install -c bioconda -c conda-forge nifflr
+```
+Then you can run NIFFLR by executing nifflr.sh
+
+## Installation from source
+### Compilation Dependencies
 To successfully compile NIFFLR, make sure the following development libraries are installed on your system:
 
 Boost development libraries (e.g., libboost-all-dev on Ubuntu/Debian)
+
 zlib development libraries (e.g., zlib1g-dev on Ubuntu/Debian)
 
 For example, on Ubuntu/Debian, run:
+
 sudo apt-get update
+
 sudo apt-get install libboost-all-dev zlib1g-dev
 
-# Installation insructions
-
-## Installation from source
-To install, first download the latest distribution from the github release page https://github.com/alekseyzimin/jf_aligner/releases. Then untar/unzip the package nifflr-X.X.X.tgz, cd to the resulting folder and run `./install.sh`.  The installation script will configure and make all necessary packages.  The nifflr.sh executable will appear under bin/
+### Installation
+To install, first download the latest distribution from the github release page https://github.com/alguoo314/NIFFLR/releases. Then untar/unzip the package nifflr-X.X.X.tgz, cd to the resulting folder and run `./install.sh`.  The installation script will configure and make all necessary packages.  The nifflr.sh executable will appear under bin/
 
 Only for developers:  you can clone the development tree, but then there are dependencies such as swig and yaggo (http://www.swig.org/ and https://github.com/gmarcais/yaggo) that must be available on the PATH:
 
@@ -70,5 +81,6 @@ intron chain -- intron chain of the transcript
 min_junction_count -- minimum number of reads spanning an intron junction in the transcript
 
 <output_prefix>.transcripts.gtf -- GTF file of detected reference and novel transcripts.  Novel transcripts have "nifflr" in the 2nd column of the GTF file.
+
 
 

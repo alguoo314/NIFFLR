@@ -69,3 +69,4 @@ intron chain -- intron chain of the transcript
 min_junction_count -- minimum number of reads spanning an intron junction in the transcript
 
 <output_prefix>.transcripts.gtf -- GTF file of detected reference and novel transcripts.  Novel transcripts have "nifflr" in the 2nd column of the GTF file.
+

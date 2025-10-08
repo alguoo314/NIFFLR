@@ -73,7 +73,7 @@ Options (default value in (), *required):
 ```
 
 # Outputs
-Nifflr produces the following output files:
+NIFFLR produces the following output files:
 
 <output_prefix>.quantify.tsv -- tab-separated four column file with the following columns:
 transcript_id -- if of the transcript, either from the input reference or TCONS_* for novel transcripts
@@ -82,6 +82,7 @@ intron chain -- intron chain of the transcript
 min_junction_count -- minimum number of reads spanning an intron junction in the transcript
 
 <output_prefix>.transcripts.gtf -- GTF file of detected reference and novel transcripts.  Novel transcripts have "nifflr" in the 2nd column of the GTF file.
+
 
 
 

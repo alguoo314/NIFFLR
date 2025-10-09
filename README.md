@@ -17,15 +17,13 @@ Then you can run NIFFLR by executing nifflr.sh
 ### Compilation Dependencies
 To successfully compile NIFFLR, make sure the following development libraries are installed on your system:
 
-Boost development libraries (e.g., libboost-all-dev on Ubuntu/Debian)
-
-zlib development libraries (e.g., zlib1g-dev on Ubuntu/Debian)
+Boost development libraries (e.g., libboost-all-dev on Ubuntu/Debian)<br>
+zlib development libraries (e.g., zlib1g-dev on Ubuntu/Debian)<br>
 
 For example, on Ubuntu/Debian, run:
 
-sudo apt-get update
-
-sudo apt-get install libboost-all-dev zlib1g-dev
+sudo apt-get update<br>
+sudo apt-get install libboost-all-dev zlib1g-dev<br>
 
 ### Installation
 To install, first download the latest distribution from the github release page https://github.com/alguoo314/NIFFLR/releases. Then untar/unzip the package nifflr-X.X.X.tgz, cd to the resulting folder and run `./install.sh`.  The installation script will configure and make all necessary packages.  The nifflr.sh executable will appear under bin/
@@ -75,13 +73,14 @@ Options (default value in (), *required):
 # Outputs
 NIFFLR produces the following output files:
 
-<output_prefix>.quantify.tsv -- tab-separated four column file with the following columns:
-transcript_id -- if of the transcript, either from the input reference or TCONS_* for novel transcripts
-read_count -- number of reads assigned to the transcript
-intron chain -- intron chain of the transcript
-min_junction_count -- minimum number of reads spanning an intron junction in the transcript
+<output_prefix>.quantify.tsv -- tab-separated four column file with the following columns:<br>
+transcript_id -- ID of the transcript, either from the input reference (transcript_id) or TCONS_* for novel transcripts<br>
+read_count -- number of reads assigned to the transcript<br>
+intron chain -- intron chain of the transcript<br>
+min_junction_count -- minimum number of reads spanning any intron junction in the transcript
 
 <output_prefix>.transcripts.gtf -- GTF file of detected reference and novel transcripts.  Novel transcripts have "nifflr" in the 2nd column of the GTF file.
+
 
 
 
